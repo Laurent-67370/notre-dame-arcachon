@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createChurch } from './church.js';
+import { setupGallery } from './gallery.js';
 
 const SEED = 20261104;
 function mulberry32(a) { return function () { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -196,7 +197,8 @@ document.getElementById('photos-close').addEventListener('click', () => photoDra
 const help = document.getElementById('help-dialog');
 document.getElementById('help-btn').addEventListener('click', () => help.showModal());
 document.getElementById('help-close').addEventListener('click', () => help.close()); document.getElementById('understood').addEventListener('click', () => help.close());
-addEventListener('keydown', e => { if (e.key === 'Escape') photoDrawer(false); });
+const gallery = setupGallery(document.getElementById('gallery'));
+addEventListener('keydown', e => { if (e.key === 'Escape' && !gallery.isOpen()) photoDrawer(false); });
 
 const projected = new THREE.Vector3();
 function updateHotspots() {
