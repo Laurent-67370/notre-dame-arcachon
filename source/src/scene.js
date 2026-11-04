@@ -140,16 +140,16 @@ const views = {
   parvis: { position: [2, 9.5, 39], target: [0, 12.8, 5] },
   clocher: { position: [22, 29, 45], target: [0, 28, 5.3] },
   rosace: { position: [42, 17, -1], target: [13, 12, -16] },
-  // À l'intérieur de la Chapelle des Marins, depuis l'entrée, face au maître-autel.
-  chapelle: { position: [-12.2, 3.6, 3.6], target: [-12.8, 3.64, 3.6], inside: true },
+  // Dans le hall d'entrée de l'église, face à la paroi vitrée de la Chapelle des Marins.
+  chapelle: { position: [-9.95, 3.55, 3.6], target: [-10.2, 3.57, 3.6], inside: true },
 };
-const OUTSIDE = { minDistance: 18, maxDistance: 125, minPolarAngle: .16, maxPolarAngle: Math.PI / 2 - .025, fov: 43, pan: true };
+const OUTSIDE = { minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minDistance: 18, maxDistance: 125, minPolarAngle: .16, maxPolarAngle: Math.PI / 2 - .025, fov: 43, pan: true };
 // À l'intérieur, la cible reste tout près de l'œil : glisser revient à tourner la tête.
-const INSIDE = { minDistance: .3, maxDistance: 1.1, minPolarAngle: .55, maxPolarAngle: Math.PI - .45, fov: 64, pan: false };
+const INSIDE = { minAzimuthAngle: Math.PI / 2 - 1.15, maxAzimuthAngle: Math.PI / 2 + 1.15, minDistance: .15, maxDistance: .45, minPolarAngle: .55, maxPolarAngle: Math.PI - .45, fov: 64, pan: false };
 let inside = false;
 function setInside(on) {
   inside = on; const l = on ? INSIDE : OUTSIDE;
-  Object.assign(controls, { minDistance: l.minDistance, maxDistance: l.maxDistance, minPolarAngle: l.minPolarAngle, maxPolarAngle: l.maxPolarAngle, enablePan: l.pan });
+  Object.assign(controls, { minAzimuthAngle: l.minAzimuthAngle, maxAzimuthAngle: l.maxAzimuthAngle, minDistance: l.minDistance, maxDistance: l.maxDistance, minPolarAngle: l.minPolarAngle, maxPolarAngle: l.maxPolarAngle, enablePan: l.pan });
   controls.zoomToCursor = !on;
   camera.fov = on && innerWidth / innerHeight < .75 ? 84 : l.fov; camera.updateProjectionMatrix();
   document.body.classList.toggle('inside', on);
@@ -157,7 +157,7 @@ function setInside(on) {
 const details = {
   parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'parvis' },
   clocher: { kicker: 'Le repère', title: 'Le clocher', text: 'La tour associe la brique rouge à des chaînages de pierre claire. Au-dessus de l’horloge, les baies jumelées précèdent les pinacles et la grande flèche octogonale.', view: 'clocher' },
-  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé.', view: 'chapelle', go: 'Entrer dans la chapelle' },
+  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé. On la découvre depuis le hall d’entrée de l’église, à travers des parois vitrées.', view: 'chapelle', go: 'Regarder par la vitre' },
   rosace: { kicker: 'La lumière', title: 'La rosace', text: 'Sur le transept, la rosace compose un motif rayonnant de huit pétales. Son cercle de pierre contraste délicatement avec le mur de brique.', view: 'rosace' },
 };
 let cameraTween = null;

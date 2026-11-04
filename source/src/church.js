@@ -579,6 +579,9 @@ export function createChurch() {
     iron: new THREE.MeshStandardMaterial({ map: grilleTexture(), alphaTest: .5, side: THREE.DoubleSide, roughness: .5, metalness: .4, color: 0x2a2a2a }),
     daylight: new THREE.MeshStandardMaterial({ color: 0xbfd6e4, emissive: 0x9cc0d8, emissiveIntensity: .9, roughness: .3 }),
     candle: new THREE.MeshStandardMaterial({ color: 0xfff2d6, emissive: 0xffc46b, emissiveIntensity: 1.6 }),
+    glass: new THREE.MeshStandardMaterial({ color: 0xdfeeee, roughness: .05, metalness: .1, transparent: true, opacity: .14, depthWrite: false }),
+    slate: new THREE.MeshStandardMaterial({ color: 0x4b4f50, roughness: .6 }),
+    white: new THREE.MeshStandardMaterial({ color: 0xf6f6f2, roughness: .6 }),
   };
   const C = chapel;
   // Gros œuvre extérieur : moellons de garluche, chaînages et encadrements de pierre.
@@ -586,7 +589,9 @@ export function createChurch() {
   box(X1 - X0, EAVE, T, CX, EAVE / 2, Z0 + T / 2, mat.ironstone, C);
   box(X1 - X0, EAVE, T, CX, EAVE / 2, Z1 - T / 2, mat.ironstone, C);
   box(T, EAVE, Z1 - Z0, X1 - T / 2, EAVE / 2, CZ, mat.ironstone, C);
-  box(T, EAVE, Z1 - Z0, X0 + T / 2, EAVE / 2, CZ, mat.ironstone, C);
+  const GLASS_TOP = FLOOR + 3.0;
+  box(T, FLOOR, Z1 - Z0, X0 + T / 2, FLOOR / 2, CZ, mat.ironstone, C);
+  box(T, EAVE - GLASS_TOP, Z1 - Z0, X0 + T / 2, (EAVE + GLASS_TOP) / 2, CZ, mat.ironstone, C);
   gableWall(Z1 - Z0, EAVE - .05, EAVE, 8.9, X1 - .35, CZ, Math.PI / 2, mat.ironstone, C);
   gableRoof(Z1 - Z0 + .5, X1 - X0 + .3, EAVE, 8.9, CX, CZ, Math.PI / 2, mat.canal, C);
   for (const z of [Z0, Z1]) { quoins(X1 - .2, z + (z ? -.2 : .2), 0, EAVE, .9, C); box(X1 - X0 + .1, .22, .62, CX, EAVE - .1, z, mat.stone, C); }
@@ -619,10 +624,35 @@ export function createChurch() {
     const frame = archRing(.82, 2.3, .14); frame.position.set(15.6, 3.2, z + d * .05); frame.rotation.y = pane.rotation.y; C.add(frame);
     box(.95, .1, .16, 15.6, 3.18, z + d * .08, mat.stone, C);
   }
-  for (const [x, d] of [[IX0 + .03, 1], [IX1 - .03, -1]]) {
-    box(.05, WALL_TOP + RISE + .2 - FLOOR, IW, x, (FLOOR + WALL_TOP + RISE + .2) / 2, CZ, cm.wall, C);
-    box(.07, .95, IW, x + d * .02, FLOOR + .48, CZ, cm.wainscot, C);
+  box(.05, WALL_TOP + RISE + .2 - FLOOR, IW, IX1 - .03, (FLOOR + WALL_TOP + RISE + .2) / 2, CZ, cm.wall, C);
+  box(.07, .95, IW, IX1 - .05, FLOOR + .48, CZ, cm.wainscot, C);
+  box(.05, WALL_TOP + RISE + .2 - GLASS_TOP, IW, IX0 + .03, (WALL_TOP + RISE + .2 + GLASS_TOP) / 2, CZ, cm.wall, C);
+
+  // Paroi vitrée entre le hall d'entrée de l'église et la chapelle : portes centrales,
+  // poignées en laiton, plaques « TIREZ » et rangée de petites croix blanches.
+  const GX0 = X0 + T / 2;
+  box(.03, GLASS_TOP - FLOOR, Z1 - Z0 - .1, GX0, (FLOOR + GLASS_TOP) / 2, CZ, cm.glass, C);
+  for (const z of [Z0 + .1, CZ - 1.15, CZ, CZ + 1.15, Z1 - .1]) box(.06, GLASS_TOP - FLOOR, .05, GX0, (FLOOR + GLASS_TOP) / 2, z, mat.metal, C);
+  box(.08, .08, Z1 - Z0, GX0, GLASS_TOP - .04, CZ, mat.metal, C);
+  box(.08, .05, Z1 - Z0, GX0, FLOOR + .03, CZ, mat.metal, C);
+  for (const side of [-1, 1]) {
+    const z = CZ + side * .32;
+    box(.035, .035, .62, GX0 - .1, FLOOR + 1.15, z, cm.gold, C);
+    for (const e of [-.29, .29]) box(.1, .03, .03, GX0 - .05, FLOOR + 1.15, z + e, cm.gold, C);
+    box(.01, .05, .15, GX0 - .02, FLOOR + 1.38, z, cm.slate, C);
   }
+  for (let z = Z0 + .25; z < Z1 - .1; z += .26) {
+    box(.006, .13, .025, GX0 - .02, FLOOR + .92, z, cm.white, C);
+    box(.006, .025, .09, GX0 - .02, FLOOR + .95, z, cm.white, C);
+  }
+  // Le hall d'entrée, d'où l'on regarde la chapelle.
+  const HX0 = 9.3;
+  box(X0 - HX0, .04, IW, (HX0 + X0) / 2, FLOOR + .02, CZ, cm.slate, C);
+  box(X0 - HX0, .06, IW, (HX0 + X0) / 2, FLOOR + 3.4, CZ, cm.white, C);
+  for (const z of [IZ0 + .03, IZ1 - .03]) box(X0 - HX0, 3.4, .05, (HX0 + X0) / 2, FLOOR + 1.7, z, cm.render, C);
+  box(.05, 3.4, IW, HX0, FLOOR + 1.7, CZ, cm.render, C);
+  box(.04, .45, IW, X0 - .02, GLASS_TOP + .2, CZ, cm.render, C);
+  box(X0 - 9.15, 8.2, 2.15, (9.15 + X0) / 2, 4.1, 6.125, mat.brick, C);   // ferme le hall entre le bas-côté et la façade
   // Voûte lambrissée peinte (segment de cylindre).
   const R = ((IW / 2) ** 2 + RISE ** 2) / (2 * RISE), half = Math.asin((IW / 2) / R);
   const vault = mesh(new THREE.CylinderGeometry(R, R, IX1 - IX0, 48, 1, true, Math.PI / 2 - half, half * 2), cm.ceiling, C);
@@ -676,6 +706,7 @@ export function createChurch() {
     }
     const light = new THREE.PointLight(0xffd8a0, 9, 9, 1.6); light.position.set(x, WALL_TOP - .2, CZ); chapelLights.add(light);
   }
+  const hallLight = new THREE.PointLight(0xfff1dc, 3, 5, 1.6); hallLight.position.set(9.9, FLOOR + 3.1, CZ); chapelLights.add(hallLight);
   const altarLight = new THREE.PointLight(0xffe2b8, 6, 6, 1.6); altarLight.position.set(RX - 1.4, FLOOR + 3.2, CZ); chapelLights.add(altarLight);
   mergeByMaterial(chapel);
   // Miroir gauche/droite : x opposé, normales corrigées, triangles remis dans le bon sens.
