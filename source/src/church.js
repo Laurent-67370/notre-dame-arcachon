@@ -564,7 +564,7 @@ export function createChurch() {
     const arm = cylinder(.09, .12, .95, 8, side * .34, 5.55, 0, mat.statue, statue); arm.rotation.z = side * -.65;
   }
 
-  const X0 = 11.2, X1 = 19.4, Z0 = -7.4, Z1 = -0.2, T = .45, FLOOR = 1.8, EAVE = 6.6, CZ = (Z0 + Z1) / 2, CX = (X0 + X1) / 2;
+  const X0 = 11.2, X1 = 19.4, Z0 = -4.6, Z1 = 2.6, T = .45, FLOOR = 1.8, EAVE = 6.6, CZ = (Z0 + Z1) / 2, CX = (X0 + X1) / 2;
   const cm = {
     render: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .95, color: 0xdcd6ca }),
     zinc: new THREE.MeshStandardMaterial({ color: 0x8a9294, roughness: .55, metalness: .3 }),
@@ -601,16 +601,16 @@ export function createChurch() {
   for (const [z, ry] of [[Z1 + .01, 0], [Z0 - .01, Math.PI]]) {
     const w = archWindow(.7, 2.2, { mullion: false, frame: .2 }); w.position.set(15.6, 3.25, z); w.rotation.y = ry; C.add(w);
   }
-  // Annexe basse enduite, ses deux groupes de trois fenêtres et sa plaque (entre la chapelle et la façade).
-  const AX0 = 11.05, AX1 = 12.55, AZ0 = Z1 + .2, AZ1 = 4.4;
+  // Annexe basse enduite, ses deux groupes de trois fenêtres et sa plaque (entre le porche et la chapelle).
+  const AX0 = 11.05, AX1 = 12.55, AZ0 = -8.05, AZ1 = Z0 - .05;
   box(AX1 - AX0, 3.0, AZ1 - AZ0, (AX0 + AX1) / 2, FLOOR + 1.5, (AZ0 + AZ1) / 2, cm.render, C);
   const flat = box(AX1 - AX0 + .3, .16, AZ1 - AZ0 + .1, (AX0 + AX1) / 2 + .05, FLOOR + 3.08, (AZ0 + AZ1) / 2, cm.zinc, C); flat.rotation.z = -.06;
   box(.12, .3, AZ1 - AZ0, AX1 + .02, FLOOR + 2.86, (AZ0 + AZ1) / 2, mat.stone, C);
-  for (const zc of [1.15, 3.25]) {
+  for (const zc of [-7.25, -5.65]) {
     box(.1, 1.55, 1.55, AX1 + .02, FLOOR + 1.45, zc, mat.stone, C);
     for (const dz of [-.46, 0, .46]) { const w = archWindow(.34, 1.2, { mullion: false, frame: .07 }); w.position.set(AX1 + .08, FLOOR + .78, zc + dz); w.rotation.y = Math.PI / 2; C.add(w); }
   }
-  box(.05, .8, .6, AX1 + .03, FLOOR + 1.5, 3.95, mat.plaque, C);
+  box(.05, .7, .34, AX1 + .03, FLOOR + 1.5, -4.86, mat.plaque, C);
 
   // Intérieur.
   const IX0 = X0 + T, IX1 = X1 - T, IZ0 = Z0 + T, IZ1 = Z1 - T, IW = IZ1 - IZ0, WALL_TOP = 5.6, RISE = 1.0;

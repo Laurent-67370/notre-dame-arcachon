@@ -143,7 +143,7 @@ const views = {
   clocher: { position: [22, 29, 45], target: [0, 28, 5.3] },
   rosace: { position: [42, 17, -1], target: [13, 12, -16] },
   // Dans le bas-côté gauche, à l'entrée de l'église, face à la paroi vitrée de la Chapelle des Marins.
-  chapelle: { position: [-9.3, 3.55, -3.8], target: [-9.55, 3.57, -3.8], inside: 'nave' },
+  chapelle: { position: [-9.3, 3.55, -1.0], target: [-9.55, 3.57, -1.0], inside: 'nave' },
   // Dans la nef : points de vue d'où l'on tourne la tête.
   nef: { position: [0, 3.5, -1.0], target: [0, 3.53, -1.25], inside: 'nave' },
   'nef-milieu': { position: [0, 3.5, -10.0], target: [0, 3.55, -10.25], inside: 'nave' },
@@ -155,18 +155,21 @@ const OUTSIDE = { minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minDist
 // À l'intérieur, la cible reste tout près de l'œil : glisser revient à tourner la tête.
 const INSIDE = { minAzimuthAngle: Math.PI / 2 - 1.15, maxAzimuthAngle: Math.PI / 2 + 1.15, minDistance: .15, maxDistance: .45, minPolarAngle: .55, maxPolarAngle: Math.PI - .45, fov: 64, pan: false };
 const NAVE = { ...INSIDE, minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minPolarAngle: .3, maxPolarAngle: Math.PI - .35 };
-let inside = false;
-function setInside(mode) {
-  const on = !!mode; inside = on; const l = mode === 'nave' ? NAVE : on ? INSIDE : OUTSIDE;
+// Pendant un passage animé (entrée ou sortie), aucune limite ne retient la caméra.
+const TRANSIT = { minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minDistance: .05, maxDistance: 400, minPolarAngle: .02, maxPolarAngle: Math.PI - .02, pan: false };
+let inside = false, inNave = false;
+function setInside(mode, transit = false) {
+  const on = !!mode; inside = on || transit; inNave = mode === 'nave';
+  const l = transit ? { ...TRANSIT, fov: mode === 'nave' ? NAVE.fov : OUTSIDE.fov } : mode === 'nave' ? NAVE : on ? INSIDE : OUTSIDE;
   church.visible = mode !== 'nave'; nave.visible = mode === 'nave';
   document.body.classList.toggle('in-nave', mode === 'nave');
   Object.assign(controls, { minAzimuthAngle: l.minAzimuthAngle, maxAzimuthAngle: l.maxAzimuthAngle, minDistance: l.minDistance, maxDistance: l.maxDistance, minPolarAngle: l.minPolarAngle, maxPolarAngle: l.maxPolarAngle, enablePan: l.pan });
   controls.zoomToCursor = !on;
   camera.fov = on && innerWidth / innerHeight < .75 ? 84 : l.fov; camera.updateProjectionMatrix();
-  document.body.classList.toggle('inside', on);
+  document.body.classList.toggle('inside', inside);
 }
 const details = {
-  parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'parvis' },
+  parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'nef', go: 'Entrer dans l’église' },
   clocher: { kicker: 'Le repère', title: 'Le clocher', text: 'La tour associe la brique rouge à des chaînages de pierre claire. Au-dessus de l’horloge, les baies jumelées précèdent les pinacles et la grande flèche octogonale.', view: 'clocher' },
   chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé. On la découvre à gauche en entrant dans l’église, à travers des parois vitrées.', view: 'chapelle', go: 'Regarder par la vitre' },
   rosace: { kicker: 'La lumière', title: 'La rosace', text: 'Sur le transept, la rosace compose un motif rayonnant de huit pétales. Son cercle de pierre contraste délicatement avec le mur de brique.', view: 'rosace' },
@@ -177,8 +180,67 @@ function setView(name) {
   setInside(v.inside || false);
   const toTarget = new THREE.Vector3(...v.target), toPos = new THREE.Vector3(...v.position);
   if (name === 'overview' && innerWidth / innerHeight < .75) toPos.sub(toTarget).multiplyScalar(1.28).add(toTarget);
-  cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget };
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name || (b.dataset.view === 'nef' && name.startsWith('nef') && !!b.closest('.view-dock'))));
+  cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget, dur: REDUCED ? 0 : 1150 };
+  markActive(name);
+}
+function markActive(name) {
+  document.querySelectorAll('.view-btn').forEach(b => {
+    const on = b.dataset.view === name || (b.dataset.view === 'nef' && name.startsWith('nef') && !!b.closest('.view-dock'));
+    b.classList.toggle('active', on); if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  });
+}
+
+// --- Passage fluide entre l'extérieur et l'intérieur -----------------------------------
+// La caméra monte l'escalier, franchit le grand portail (court fondu) et entre dans la nef ;
+// la sortie fait le chemin inverse. Sans animation si l'appareil demande moins de mouvement.
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const fadeEl = document.getElementById('fade'), announcer = document.getElementById('announce');
+const fade = on => fadeEl.classList.toggle('on', on);
+const announce = text => { announcer.textContent = ''; setTimeout(() => { announcer.textContent = text; }, 30); };
+const PLACES = { nef: 'Vous êtes à l’entrée de la nef, sous la tribune d’orgue.', 'nef-milieu': 'Vous êtes au milieu de la nef.', 'nef-choeur': 'Vous êtes devant le chœur.', 'nef-bascote': 'Vous êtes dans le bas-côté gauche.', 'nef-orgue': 'Vous regardez la tribune d’orgue.', chapelle: 'Vous êtes à gauche de l’entrée, devant la paroi vitrée de la Chapelle des Marins.' };
+let path = null;
+function runPath(steps) {
+  path = { steps, i: -1 }; controls.enabled = false; cameraTween = null; nextStep();
+}
+function nextStep() {
+  if (!path) return;
+  const st = path.steps[++path.i];
+  if (!st) { path = null; controls.enabled = true; return; }
+  st.before?.();
+  if (st.jump) { camera.position.set(...st.jump[0]); controls.target.set(...st.jump[1]); }
+  if (st.to) cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos: new THREE.Vector3(...st.to[0]), toTarget: new THREE.Vector3(...st.to[1]), dur: REDUCED ? 0 : st.dur, onEnd: nextStep };
+  else setTimeout(nextStep, REDUCED ? 60 : st.wait || 0);
+  needsRender = true;
+}
+function enterChurch(then = 'nef') {
+  const v = views[then];
+  announce('Vous montez l’escalier et entrez par le grand portail.');
+  runPath([
+    { before: () => { setInside(false, true); document.getElementById('detail-card').classList.remove('open'); }, to: [[0, 4.8, 25], [0, 5.4, 8]], dur: 1500 },
+    { to: [[0, 4.0, 11.8], [0, 4.0, 8]], dur: 1500 },
+    { before: () => fade(true), to: [[0, 3.8, 10.3], [0, 3.8, 7]], dur: 380 },
+    { before: () => { setInside('nave', true); fade(false); }, jump: [[0, 3.5, 1.5], [0, 3.5, -1.5]], to: [[0, 3.5, -1.0], [0, 3.53, -1.25]], dur: 1500 },
+    ...(then !== 'nef' ? [{ to: [v.position, v.target], dur: 1700 }] : []),
+    { before: () => { setInside('nave'); markActive(then); announce(PLACES[then] + ' Faites glisser, ou utilisez les flèches du clavier, pour tourner la tête.'); } },
+  ]);
+}
+function leaveChurch(then = 'parvis') {
+  const v = views[then];
+  announce('Vous sortez par le grand portail.');
+  runPath([
+    { before: () => { setInside('nave', true); fade(true); }, to: [[0, 3.5, -.6], [0, 3.5, 1.5]], dur: 500 },
+    { before: () => { setInside(false, true); fade(false); }, jump: [[0, 3.8, 10.0], [0, 4.0, 13]], to: [[0, 4.6, 16], [0, 4.4, 24]], dur: 1300 },
+    { to: [v.position, v.target], dur: 1800 },
+    { before: () => { setInside(false); markActive(then); announce('Vous êtes à l’extérieur de l’église.'); } },
+  ]);
+}
+// Toute navigation passe par ici : entrée ou sortie animée quand on change de côté du portail.
+function goTo(name) {
+  const v = views[name]; if (!v || path) return;
+  const wantNave = v.inside === 'nave';
+  if (wantNave && !inNave) enterChurch(name);
+  else if (!wantNave && inNave) leaveChurch(name);
+  else { setView(name); if (wantNave) announce(PLACES[name] || ''); }
 }
 function openDetail(name) {
   const d = details[name]; if (!d) return;
@@ -189,13 +251,13 @@ function openDetail(name) {
   document.getElementById('card-go').textContent = d.go || 'Admirer de plus près';
   document.getElementById('detail-card').classList.add('open');
 }
-document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));
 document.querySelectorAll('.hotspot').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.hotspot)));
 document.getElementById('detail-close').addEventListener('click', () => document.getElementById('detail-card').classList.remove('open'));
-document.getElementById('card-go').addEventListener('click', e => { setView(e.currentTarget.dataset.view); document.getElementById('detail-card').classList.remove('open'); });
+document.getElementById('card-go').addEventListener('click', e => { document.getElementById('detail-card').classList.remove('open'); goTo(e.currentTarget.dataset.view); });
 const rotateBtn = document.getElementById('rotate-btn');
 rotateBtn.addEventListener('click', () => { controls.autoRotate = !controls.autoRotate; rotateBtn.classList.toggle('active', controls.autoRotate); rotateBtn.setAttribute('aria-pressed', String(controls.autoRotate)); });
-controls.addEventListener('start', () => { cameraTween = null; if (controls.autoRotate) { controls.autoRotate = false; rotateBtn.classList.remove('active'); rotateBtn.setAttribute('aria-pressed', 'false'); } });
+controls.addEventListener('start', () => { if (!path) cameraTween = null; if (controls.autoRotate) { controls.autoRotate = false; rotateBtn.classList.remove('active'); rotateBtn.setAttribute('aria-pressed', 'false'); } });
 
 let golden = false;
 document.getElementById('light-btn').addEventListener('click', e => {
@@ -226,6 +288,17 @@ document.getElementById('help-btn').addEventListener('click', () => help.showMod
 document.getElementById('help-close').addEventListener('click', () => help.close()); document.getElementById('understood').addEventListener('click', () => help.close());
 const gallery = setupGallery(document.getElementById('gallery'));
 addEventListener('keydown', e => { if (e.key === 'Escape' && !gallery.isOpen()) photoDrawer(false); });
+// Clavier : les flèches font tourner la vue (la tête à l'intérieur, autour de l'église dehors).
+const sph = new THREE.Spherical(), off = new THREE.Vector3();
+addEventListener('keydown', e => {
+  if (path || gallery.isOpen() || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
+  const turn = { ArrowLeft: [.12, 0], ArrowRight: [-.12, 0], ArrowUp: [0, -.08], ArrowDown: [0, .08] }[e.key];
+  if (!turn) return;
+  e.preventDefault(); cameraTween = null;
+  off.copy(camera.position).sub(controls.target); sph.setFromVector3(off);
+  sph.theta += turn[0]; sph.phi += turn[1] * (inside ? -1 : 1);
+  off.setFromSpherical(sph); camera.position.copy(controls.target).add(off); controls.update(); needsRender = true;
+});
 
 const projected = new THREE.Vector3();
 function updateHotspots() {
@@ -243,9 +316,9 @@ let needsRender = true;
 function draw(force = false) {
   let animating = false;
   if (cameraTween) {
-    const raw = Math.min(1, (performance.now() - cameraTween.start) / 1150), t = raw * raw * (3 - 2 * raw);
+    const dur = cameraTween.dur ?? 1150, raw = dur > 0 ? Math.min(1, (performance.now() - cameraTween.start) / dur) : 1, t = raw * raw * (3 - 2 * raw);
     camera.position.lerpVectors(cameraTween.fromPos, cameraTween.toPos, t); controls.target.lerpVectors(cameraTween.fromTarget, cameraTween.toTarget, t);
-    if (raw >= 1) cameraTween = null; else animating = true;
+    if (raw >= 1) { const done = cameraTween.onEnd; cameraTween = null; if (done) setTimeout(done, 0); } else animating = true;
   }
   const changed = controls.update();
   if (force || needsRender || changed || animating || controls.autoRotate) {

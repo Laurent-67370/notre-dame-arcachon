@@ -83,7 +83,9 @@ const balustradeTex = () => canvasTex(512, 64, (ctx, w, h) => {
 });
 
 // CH : position de la paroi vitrée de la chapelle (côté gauche, x négatif).
-const CH = { x0: 11.2, z0: -6.95, z1: -.65, glassTop: 4.8 };
+const CH = { x0: 11.2, z0: -4.15, z1: 2.15, glassTop: 4.8 };
+// Le bas-côté gauche se prolonge vers la façade jusqu'à ZWL pour longer toute la paroi vitrée.
+const ZWL = 2.4;
 
 export function createNave() {
   const nave = new THREE.Group(); nave.name = 'Nef';
@@ -154,10 +156,13 @@ export function createNave() {
 
   // Sol, mur de façade (sous la tribune) et arc triomphal.
   box(AW * 2, .02, -ZAE, 0, FLOOR + .01, ZAE / 2, m.floor);
-  const westPts = [[-AW, FLOOR], ...aisleCurve(-1).map(([x, y]) => [x, y + .12]), [-PX - .25, VS + .1], ...naveCurve.map(([x, y]) => [x, y + .15]), [PX + .25, VS + .1], ...aisleCurve(1).reverse().map(([x, y]) => [x, y + .12]), [AW, FLOOR]];
+  const westPts = [[-PX - .25, FLOOR], [-PX - .25, VS + .1], ...naveCurve.map(([x, y]) => [x, y + .15]), [PX + .25, VS + .1], ...aisleCurve(1).reverse().map(([x, y]) => [x, y + .12]), [AW, FLOOR]];
   const door = archOutline(0, 2.4, FLOOR, FLOOR + 2.6, FLOOR + 3.6);
   const west = add(shapeFrom(westPts, [door]), m.plaster); west.position.z = -.02;
-  const doorLeaf = add(shapeFrom(door), m.darkWood); doorLeaf.position.z = .1;
+  for (const sx of [-1, 1]) box(1.15, 3.3, .07, sx * 1.85, FLOOR + 1.65, -.07, m.darkWood);   // battants ouverts, rabattus contre le mur
+  const westLeft = add(shapeFrom([[-AW, FLOOR], ...aisleCurve(-1).map(([x, y]) => [x, y + .12]), [-PX - .25, 8.6], [-PX - .25, FLOOR]]), m.plaster); westLeft.position.z = ZWL;
+  box(.5, 8.6 - FLOOR, ZWL, -PX, (8.6 + FLOOR) / 2, ZWL / 2, m.plaster);
+  box(AW - PX - .25, .02, ZWL, -(AW + PX + .25) / 2, FLOOR + .01, ZWL / 2, m.floor);
   const triPts = [[-PX - .25, FLOOR], [-PX - .25, VS], ...naveCurve.map(([x, y]) => [x, y + .15]), [PX + .25, VS], [PX + .25, FLOOR]];
   const triHole = archOutline(0, 11.0, FLOOR, 9.2, 14.4, 18);
   for (const z of [ZT, ZT - .6]) { const t = add(shapeFrom(triPts, [triHole]), m.plaster); t.position.z = z; }
@@ -193,7 +198,7 @@ export function createNave() {
     else {
       // À gauche en entrant : le mur s'ouvre sur la paroi vitrée de la Chapelle des Marins.
       const top = 5.75, gz0 = CH.z1, gz1 = CH.z0, gy = CH.glassTop;
-      box(.05, top - FLOOR, -gz0, -AW, (top + FLOOR) / 2, gz0 / 2, m.plaster);
+      box(.05, top - FLOOR, ZWL - gz0, -AW, (top + FLOOR) / 2, (ZWL + gz0) / 2, m.plaster);
       box(.05, top - FLOOR, gz1 - ZAE, -AW, (top + FLOOR) / 2, (gz1 + ZAE) / 2, m.plaster);
       box(.05, top - gy, gz0 - gz1, -AW, (top + gy) / 2, (gz0 + gz1) / 2, m.plaster);
       const depth = CH.x0 - AW;
@@ -207,9 +212,10 @@ export function createNave() {
       const w = add(shapeFrom(archOutline(0, .8, 0, 1.7, 2.6)), m.glass); w.position.set(s * (AW - .04), 2.6, z); w.rotation.y = Math.PI / 2;
     }
     const ac = aisleCurve(s);
-    strip(ac.map(([x, y]) => new THREE.Vector3(x, y, 0)), ac.map(([x, y]) => new THREE.Vector3(x, y, ZAE)), m.vault);
+    const z0 = s < 0 ? ZWL : 0;
+    strip(ac.map(([x, y]) => new THREE.Vector3(x, y, z0)), ac.map(([x, y]) => new THREE.Vector3(x, y, ZAE)), m.vault);
     const endWall = add(shapeFrom([[s * (PX + .25), FLOOR], [s * AW, FLOOR], ...ac.map(([x, y]) => [x, y + .1])]), m.plaster); endWall.position.z = ZAE;
-    const aisleRibs = [0, ...PIERS.filter(z => z > ZAE), ZAE];
+    const aisleRibs = [z0, ...PIERS.filter(z => z > ZAE), ZAE];
     for (const z of PIERS) tube(ac.map(([x, y]) => new THREE.Vector3(x, y - .06, z)), .08, m.rib);
     for (let i = 0; i < aisleRibs.length - 1; i++) {
       const za = aisleRibs[i], zb = aisleRibs[i + 1];
