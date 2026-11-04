@@ -165,6 +165,7 @@ function setInside(mode, transit = false) {
   document.body.classList.toggle('in-nave', mode === 'nave');
   Object.assign(controls, { minAzimuthAngle: l.minAzimuthAngle, maxAzimuthAngle: l.maxAzimuthAngle, minDistance: l.minDistance, maxDistance: l.maxDistance, minPolarAngle: l.minPolarAngle, maxPolarAngle: l.maxPolarAngle, enablePan: l.pan });
   controls.zoomToCursor = !on;
+  controls.enableZoom = !(mode === 'nave' && !transit);
   camera.fov = on && innerWidth / innerHeight < .75 ? 84 : l.fov; camera.updateProjectionMatrix();
   document.body.classList.toggle('inside', inside);
 }
@@ -212,6 +213,9 @@ function nextStep() {
   else setTimeout(nextStep, REDUCED ? 60 : st.wait || 0);
   needsRender = true;
 }
+const walkHint = document.getElementById('walk-hint');
+let walkHintTimer = null;
+function showWalkHint() { walkHint.classList.add('show'); clearTimeout(walkHintTimer); walkHintTimer = setTimeout(() => walkHint.classList.remove('show'), 7000); }
 function enterChurch(then = 'nef') {
   const v = views[then];
   announce('Vous montez l’escalier et entrez par le grand portail.');
@@ -225,7 +229,7 @@ function enterChurch(then = 'nef') {
     { before: () => fade(true), to: [[0, 3.8, 10.3], [0, 3.8, 7]], dur: 380 },
     { before: () => { setInside('nave', true); fade(false); }, jump: [[0, 3.5, 1.5], [0, 3.5, -1.5]], to: [[0, 3.5, -1.0], [0, 3.53, -1.25]], dur: 1500 },
     ...(then !== 'nef' ? [{ to: [v.position, v.target], dur: 1700 }] : []),
-    { before: () => { setInside('nave'); markActive(then); announce(PLACES[then] + ' Faites glisser, ou utilisez les flèches du clavier, pour tourner la tête.'); } },
+    { before: () => { setInside('nave'); markActive(then); announce(PLACES[then] + ' Touchez le sol pour y marcher, ou utilisez les flèches du clavier : haut et bas pour avancer, gauche et droite pour tourner.'); showWalkHint(); } },
   ]);
 }
 function leaveChurch(then = 'parvis') {
@@ -316,16 +320,105 @@ document.getElementById('help-btn').addEventListener('click', () => help.showMod
 document.getElementById('help-close').addEventListener('click', () => help.close()); document.getElementById('understood').addEventListener('click', () => help.close());
 const gallery = setupGallery(document.getElementById('gallery'));
 addEventListener('keydown', e => { if (e.key === 'Escape' && !gallery.isOpen()) photoDrawer(false); });
-// Clavier : les flèches font tourner la vue (la tête à l'intérieur, autour de l'église dehors).
+// --- Marcher librement dans la nef ------------------------------------------------------
+// Toucher le sol pour y aller, molette ou pincement pour avancer et reculer, clavier pour tout.
+// On ne traverse ni les piliers, ni les bancs, ni les murs ; le chœur surélevé relève le regard.
+const PIERS_Z = [-2.8, -5.7, -8.6, -11.5, -14.4, -17.3, -20.2];
+const clampN = (v, a, b) => Math.min(b, Math.max(a, v));
+function walkable(x, z) {
+  x = clampN(x, -10.2, 10.2); z = clampN(z, -30.2, 2.0);
+  if (z > -.45) { x = Math.min(x, -7.0); }                                   // seul le bas-côté gauche longe la chapelle
+  if (z < -20.7 && Math.abs(x) > 6.15) x = Math.sign(x) * (z < -22.5 ? 5.9 : 6.15);   // murs du chœur
+  if (z < -24.4) { const dx = x, dz = z + 24.8, r = Math.hypot(dx, dz); if (r > 4.5) { x = dx * 4.5 / r; z = -24.8 + dz * 4.5 / r; } }
+  const push = (cx, cz, rad) => { const dx = x - cx, dz = z - cz, d = Math.hypot(dx, dz); if (d < rad) { const k = d > 1e-4 ? rad / d : 1; x = cx + (d > 1e-4 ? dx : rad) * k; z = cz + (d > 1e-4 ? dz : 0) * k; } };
+  for (const pz of PIERS_Z) for (const px of [-6.6, 6.6]) push(px, pz, .95);
+  for (const px of [-3.3, 3.3]) push(px, -2.2, .5);
+  for (const [x0, x1, z0, z1] of [[.55, 5.85, -17.15, -3.25], [-5.85, -.55, -17.15, -3.25], [-1.5, 1.5, -20.1, -18.7]]) {
+    if (x > x0 && x < x1 && z > z0 && z < z1) {
+      const opts = [[x0 - .01, z, x - x0], [x1 + .01, z, x1 - x], [x, z0 - .01, z - z0], [x, z1 + .01, z1 - z]].sort((a, b) => a[2] - b[2]);
+      x = opts[0][0]; z = opts[0][1];
+    }
+  }
+  return [x, z];
+}
+const eyeAt = z => 3.5 + (z < -17.6 ? .35 : 0);
+const lookDir = new THREE.Vector3();
+function walkTo(x, z, dur) {
+  [x, z] = walkable(x, z);
+  lookDir.copy(controls.target).sub(camera.position);
+  const toPos = new THREE.Vector3(x, eyeAt(z), z);
+  const d = toPos.distanceTo(camera.position);
+  cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget: toPos.clone().add(lookDir), dur: REDUCED ? 0 : dur ?? clampN(d / 3.2 * 1000, 250, 2600) };
+  markActive(''); needsRender = true;
+  return d;
+}
+function stepWalk(dist) {
+  lookDir.copy(controls.target).sub(camera.position); lookDir.y = 0;
+  if (lookDir.lengthSq() < 1e-6) return;
+  lookDir.normalize().multiplyScalar(dist);
+  const [x, z] = walkable(camera.position.x + lookDir.x, camera.position.z + lookDir.z);
+  const move = new THREE.Vector3(x - camera.position.x, eyeAt(z) - camera.position.y, z - camera.position.z);
+  camera.position.add(move); controls.target.add(move); cameraTween = null; needsRender = true; markActive('');
+}
+// Repère au sol de la destination.
+const marker = new THREE.Mesh(new THREE.RingGeometry(.22, .34, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85, depthWrite: false }));
+marker.rotation.x = -Math.PI / 2; marker.visible = false; scene.add(marker);
+let markerTimer = null;
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let tap = null;
+renderer.domElement.addEventListener('pointerdown', e => { tap = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!tap || !inNave || path) return;
+  const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y), dt = performance.now() - tap.t; tap = null;
+  if (moved > 7 || dt > 450) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObject(nave, true).find(h => h.object.isMesh);
+  if (!hit) return;
+  let { x, z } = hit.point;
+  if (hit.point.y > 2.4) {                                                    // mur, pilier, voûte : on s'en approche
+    const dx = x - camera.position.x, dz = z - camera.position.z, d = Math.hypot(dx, dz);
+    const keep = Math.max(0, d - 1.4); x = camera.position.x + dx / (d || 1) * keep; z = camera.position.z + dz / (d || 1) * keep;
+  }
+  [x, z] = walkable(x, z);
+  marker.position.set(x, (z < -17.6 ? 2.16 : 1.83), z); marker.visible = true;
+  clearTimeout(markerTimer); markerTimer = setTimeout(() => { marker.visible = false; needsRender = true; }, 1600);
+  walkTo(x, z);
+});
+renderer.domElement.addEventListener('wheel', e => { if (inNave && !path) { e.preventDefault(); stepWalk(clampN(-e.deltaY / 100, -1.5, 1.5) * .6); } }, { passive: false });
+let walkPinch = null;
+renderer.domElement.addEventListener('touchstart', e => { walkPinch = e.touches.length === 2 ? Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) : null; }, { passive: true });
+renderer.domElement.addEventListener('touchmove', e => {
+  if (!inNave || path || e.touches.length !== 2 || walkPinch === null) return;
+  const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  stepWalk((d - walkPinch) * .03); walkPinch = d;
+}, { passive: true });
+
+// Clavier. Dans la nef : ↑/↓ (ou Z/W, S) avancer et reculer, ←/→ (ou Q/A, D) tourner,
+// Page↑/Page↓ regarder en haut ou en bas. Dehors : les flèches font tourner autour de l'église.
 const sph = new THREE.Spherical(), off = new THREE.Vector3();
+function turnView(dTheta, dPhi) {
+  cameraTween = null;
+  off.copy(camera.position).sub(controls.target); sph.setFromVector3(off);
+  sph.theta += dTheta; sph.phi += dPhi;
+  off.setFromSpherical(sph); camera.position.copy(controls.target).add(off); controls.update(); needsRender = true;
+}
 addEventListener('keydown', e => {
   if (path || gallery.isOpen() || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
-  const turn = { ArrowLeft: [.12, 0], ArrowRight: [-.12, 0], ArrowUp: [0, -.08], ArrowDown: [0, .08] }[e.key];
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  if (inNave) {
+    const fwd = { ArrowUp: 1, z: 1, w: 1, ArrowDown: -1, s: -1 }[k];
+    const turn = { ArrowLeft: 1, q: 1, a: 1, ArrowRight: -1, d: -1 }[k];
+    const look = { PageUp: 1, PageDown: -1 }[k];
+    if (fwd) { e.preventDefault(); stepWalk(fwd * .7); }
+    else if (turn) { e.preventDefault(); turnView(turn * .12, 0); }
+    else if (look) { e.preventDefault(); turnView(0, look * .08); }
+    return;
+  }
+  const turn = { ArrowLeft: [.12, 0], ArrowRight: [-.12, 0], ArrowUp: [0, -.08], ArrowDown: [0, .08] }[k];
   if (!turn) return;
-  e.preventDefault(); cameraTween = null;
-  off.copy(camera.position).sub(controls.target); sph.setFromVector3(off);
-  sph.theta += turn[0]; sph.phi += turn[1] * (inside ? -1 : 1);
-  off.setFromSpherical(sph); camera.position.copy(controls.target).add(off); controls.update(); needsRender = true;
+  e.preventDefault(); turnView(turn[0], turn[1] * (inside ? -1 : 1));
 });
 
 const projected = new THREE.Vector3();
