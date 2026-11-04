@@ -215,7 +215,11 @@ function nextStep() {
 function enterChurch(then = 'nef') {
   const v = views[then];
   announce('Vous montez l’escalier et entrez par le grand portail.');
+  hideZoomHint();
+  // Depuis l'arrière ou les côtés, on contourne d'abord l'église par le haut pour rejoindre le parvis.
+  const detour = camera.position.z < 12 ? [{ to: [[camera.position.x >= 0 ? 34 : -34, 24, 34], [0, 8, 4]], dur: 1300 }] : [];
   runPath([
+    ...detour,
     { before: () => { setInside(false, true); document.getElementById('detail-card').classList.remove('open'); }, to: [[0, 4.8, 25], [0, 5.4, 8]], dur: 1500 },
     { to: [[0, 4.0, 11.8], [0, 4.0, 8]], dur: 1500 },
     { before: () => fade(true), to: [[0, 3.8, 10.3], [0, 3.8, 7]], dur: 380 },
@@ -234,6 +238,30 @@ function leaveChurch(then = 'parvis') {
     { before: () => { setInside(false); markActive(then); announce('Vous êtes à l’extérieur de l’église.'); } },
   ]);
 }
+// --- Zoomer vers l'église fait entrer dans la nef -----------------------------------------
+// Arrivé au zoom maximal à l'extérieur, un message invite à continuer ; un geste de plus
+// (molette ou pincement) déclenche l'entrée par le grand portail.
+const zoomHint = document.getElementById('zoom-hint');
+let zoomPush = 0, zoomHintTimer = null;
+function hideZoomHint() { zoomPush = 0; zoomHint.classList.remove('show'); }
+function pushInward(amount) {
+  if (inside || path) return;
+  if (camera.position.distanceTo(controls.target) > OUTSIDE.minDistance + .6) { hideZoomHint(); return; }
+  zoomPush += amount;
+  zoomHint.classList.add('show'); clearTimeout(zoomHintTimer);
+  zoomHintTimer = setTimeout(hideZoomHint, 2600);
+  if (zoomPush >= 3) enterChurch('nef');
+}
+renderer.domElement.addEventListener('wheel', e => { if (e.deltaY < 0) pushInward(Math.min(1.5, Math.max(.5, -e.deltaY / 100))); }, { passive: true });
+let pinch = null;
+renderer.domElement.addEventListener('touchstart', e => { pinch = e.touches.length === 2 ? Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) : null; }, { passive: true });
+renderer.domElement.addEventListener('touchmove', e => {
+  if (e.touches.length !== 2 || pinch === null) return;
+  const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  if (d > pinch * 1.12) { pushInward(1); pinch = d; } else if (d < pinch * .9) pinch = d;
+}, { passive: true });
+document.getElementById('zoom-hint-go').addEventListener('click', () => enterChurch('nef'));
+
 // Toute navigation passe par ici : entrée ou sortie animée quand on change de côté du portail.
 function goTo(name) {
   const v = views[name]; if (!v || path) return;
