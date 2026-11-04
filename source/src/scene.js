@@ -79,7 +79,7 @@ for (let i = -4; i <= 4; i++) box(3.4, .025, .38, i * 6.0, .065, 27.2, pathMat).
 const grassMat = new THREE.MeshStandardMaterial({ color: 0x718064, roughness: 1 });
 for (const side of [-1, 1]) box(15, .15, 48, side * 25, .02, -7, grassMat).castShadow = false;
 
-const { church, hotspots } = createChurch(); scene.add(church);
+const { church, chapel, hotspots } = createChurch(); scene.add(church, chapel);
 
 // Mobilier urbain simple et familier.
 const darkMetal = new THREE.MeshStandardMaterial({ color: 0x262e2c, roughness: .55, metalness: .5 });
@@ -101,7 +101,7 @@ function bench(x, z, rotation = 0) {
   for (let i = 0; i < 4; i++) box(2.5, .09, .13, 0, .76, -.25 + i * .17, wood, g);
   for (let i = 0; i < 3; i++) { const slat = box(2.5, .13, .09, 0, 1.0 + i * .18, -.37, wood, g); slat.rotation.x = -.12; }
 }
-bench(20, 8, -Math.PI / 2); bench(-20, 4, Math.PI / 2);
+bench(22, 10, -Math.PI / 2); bench(-22, -12, Math.PI / 2);
 
 // Platanes stylisés : troncs, branches et couronnes irrégulières.
 const trunkMat = new THREE.MeshStandardMaterial({ color: 0x756b56, roughness: 1 });
@@ -140,15 +140,30 @@ const views = {
   parvis: { position: [2, 9.5, 39], target: [0, 12.8, 5] },
   clocher: { position: [22, 29, 45], target: [0, 28, 5.3] },
   rosace: { position: [42, 17, -1], target: [13, 12, -16] },
+  // À l'intérieur de la Chapelle des Marins, depuis l'entrée, face au maître-autel.
+  chapelle: { position: [-12.2, 3.6, 3.6], target: [-12.8, 3.64, 3.6], inside: true },
 };
+const OUTSIDE = { minDistance: 18, maxDistance: 125, minPolarAngle: .16, maxPolarAngle: Math.PI / 2 - .025, fov: 43, pan: true };
+// À l'intérieur, la cible reste tout près de l'œil : glisser revient à tourner la tête.
+const INSIDE = { minDistance: .3, maxDistance: 1.1, minPolarAngle: .55, maxPolarAngle: Math.PI - .45, fov: 64, pan: false };
+let inside = false;
+function setInside(on) {
+  inside = on; const l = on ? INSIDE : OUTSIDE;
+  Object.assign(controls, { minDistance: l.minDistance, maxDistance: l.maxDistance, minPolarAngle: l.minPolarAngle, maxPolarAngle: l.maxPolarAngle, enablePan: l.pan });
+  controls.zoomToCursor = !on;
+  camera.fov = on && innerWidth / innerHeight < .75 ? 84 : l.fov; camera.updateProjectionMatrix();
+  document.body.classList.toggle('inside', on);
+}
 const details = {
   parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'parvis' },
   clocher: { kicker: 'Le repère', title: 'Le clocher', text: 'La tour associe la brique rouge à des chaînages de pierre claire. Au-dessus de l’horloge, les baies jumelées précèdent les pinacles et la grande flèche octogonale.', view: 'clocher' },
+  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé.', view: 'chapelle', go: 'Entrer dans la chapelle' },
   rosace: { kicker: 'La lumière', title: 'La rosace', text: 'Sur le transept, la rosace compose un motif rayonnant de huit pétales. Son cercle de pierre contraste délicatement avec le mur de brique.', view: 'rosace' },
 };
 let cameraTween = null;
 function setView(name) {
   const v = views[name]; if (!v) return;
+  setInside(!!v.inside);
   const toTarget = new THREE.Vector3(...v.target), toPos = new THREE.Vector3(...v.position);
   if (name === 'overview' && innerWidth / innerHeight < .75) toPos.sub(toTarget).multiplyScalar(1.28).add(toTarget);
   cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget };
@@ -160,6 +175,7 @@ function openDetail(name) {
   document.getElementById('card-title').textContent = d.title;
   document.getElementById('card-text').textContent = d.text;
   document.getElementById('card-go').dataset.view = d.view;
+  document.getElementById('card-go').textContent = d.go || 'Admirer de plus près';
   document.getElementById('detail-card').classList.add('open');
 }
 document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
@@ -204,9 +220,10 @@ const projected = new THREE.Vector3();
 function updateHotspots() {
   document.querySelectorAll('.hotspot').forEach(el => {
     const p = hotspots[el.dataset.hotspot]; projected.copy(p).project(camera);
-    let visible = projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .96 && Math.abs(projected.y) < .92;
+    let visible = !inside && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .96 && Math.abs(projected.y) < .92;
     if (el.dataset.hotspot === 'parvis' && camera.position.z < 0) visible = false;
     if (el.dataset.hotspot === 'rosace' && camera.position.x < 9) visible = false;
+    if (el.dataset.hotspot === 'chapelle' && camera.position.x > -12) visible = false;
     el.style.display = visible ? 'flex' : 'none';
     if (visible) { el.style.left = `${(projected.x * .5 + .5) * innerWidth}px`; el.style.top = `${(-projected.y * .5 + .5) * innerHeight}px`; }
   });
@@ -228,7 +245,7 @@ renderer.setAnimationLoop(() => draw());
 window.__seek = () => { cameraTween = null; controls.autoRotate = false; draw(true); };
 window.__play = () => draw(true);
 window.__SCENE_STATS__ = () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries });
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); draw(true); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; if (inside) camera.fov = camera.aspect < .75 ? 84 : INSIDE.fov; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); draw(true); });
 draw(true);
 requestAnimationFrame(() => requestAnimationFrame(() => { const loading = document.getElementById('loading'); if (loading) { loading.classList.add('done'); setTimeout(() => loading.remove(), 700); } window.__SCENE_READY__ = true; }));
 const params = new URLSearchParams(location.search);

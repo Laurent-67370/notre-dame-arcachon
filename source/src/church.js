@@ -88,9 +88,108 @@ function ironstoneTexture() {
   }, [6, 1]);
 }
 
+// --- Textures de la Chapelle des Marins ---------------------------------------------
+// Plafond de bois peint : planches, grands cadres brun-rouge et rinceaux bleu-gris et ocre.
+function paintedCeilingTexture() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#e4dbc4'; ctx.fillRect(0, 0, 1024, 512);
+  for (let x = 0; x < 1024; x += 32) { ctx.fillStyle = `rgba(90,70,45,${.05 + random() * .05})`; ctx.fillRect(x, 0, 2, 512); }
+  ctx.strokeStyle = '#8c4a38'; ctx.lineWidth = 9;
+  ctx.strokeRect(24, 24, 976, 464);
+  ctx.beginPath();                         // grand octogone central
+  for (let i = 0; i < 8; i++) { const a = i * TAU / 8 + Math.PI / 8; ctx.lineTo(512 + Math.cos(a) * 230, 256 + Math.sin(a) * 175); }
+  ctx.closePath(); ctx.stroke();
+  for (const x of [70, 790]) ctx.strokeRect(x, 70, 164, 372);   // cadres latéraux
+  ctx.lineWidth = 4; ctx.strokeStyle = '#a8644a';
+  for (const x of [88, 808]) ctx.strokeRect(x, 88, 128, 336);
+  ctx.beginPath(); ctx.ellipse(512, 256, 120, 86, 0, 0, TAU); ctx.stroke();
+  function scroll(x, y, r, flip, color) {   // rinceau en « S »
+    ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.beginPath();
+    ctx.arc(x, y, r, Math.PI * (flip ? .1 : 1.1), Math.PI * (flip ? 1.6 : 2.6)); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x + r * 1.8 * (flip ? -1 : 1), y + r * .4, r * .7, 0, Math.PI * 1.4); ctx.stroke();
+    ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(x + r * .9 * (flip ? -1 : 1), y - r * .9, r * .5, r * .22, .6, 0, TAU); ctx.fill();
+  }
+  for (const [x, y, r, f, col] of [[300, 120, 30, 0, '#5f7f8c'], [724, 120, 30, 1, '#5f7f8c'], [300, 392, 30, 0, '#b0823a'], [724, 392, 30, 1, '#b0823a'],
+    [152, 170, 22, 0, '#b0823a'], [872, 170, 22, 1, '#b0823a'], [152, 342, 22, 0, '#5f7f8c'], [872, 342, 22, 1, '#5f7f8c'], [430, 256, 24, 1, '#5f7f8c'], [594, 256, 24, 0, '#5f7f8c']])
+    scroll(x, y, r, f, col);
+  ctx.fillStyle = '#6d8796'; ctx.beginPath(); ctx.ellipse(512, 256, 52, 36, 0, 0, TAU); ctx.fill();   // médaillon
+  ctx.fillStyle = '#e9e1cc'; ctx.beginPath(); ctx.ellipse(512, 262, 15, 26, 0, 0, TAU); ctx.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+// Sol en tomettes posées en diagonale.
+function tometteTexture() {
+  return canvasTexture(512, (ctx, s) => {
+    ctx.fillStyle = '#6e4a36'; ctx.fillRect(0, 0, s, s);
+    const colors = ['#9c5a3c', '#a8653f', '#8b4f37', '#b37350', '#7f4733', '#a26a4c'];
+    ctx.save(); ctx.translate(s / 2, s / 2); ctx.rotate(Math.PI / 4); ctx.translate(-s, -s);
+    for (let x = 0; x < s * 2; x += 46) for (let y = 0; y < s * 2; y += 46) {
+      ctx.fillStyle = colors[Math.floor(random() * colors.length)]; ctx.fillRect(x + 2, y + 2, 42, 42);
+    }
+    ctx.restore();
+  }, [3, 2]);
+}
+// Murs bleu-gris à panneaux soulignés d'or.
+function panelWallTexture() {
+  return canvasTexture(256, (ctx, s) => {
+    ctx.fillStyle = '#b4c0c2'; ctx.fillRect(0, 0, s, s);
+    ctx.strokeStyle = '#c9a85a'; ctx.lineWidth = 4; ctx.strokeRect(26, 30, s - 52, s - 60);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2; ctx.strokeRect(36, 40, s - 72, s - 80);
+  }, [4, 1]);
+}
+// Grille en fer forgé : barreaux et volutes, sur fond transparent.
+function grilleTexture() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 256;
+  const ctx = c.getContext('2d'); ctx.strokeStyle = '#141414'; ctx.lineCap = 'round';
+  ctx.lineWidth = 5; ctx.strokeRect(4, 4, 1016, 248);
+  ctx.lineWidth = 3;
+  for (let x = 32; x < 1024; x += 48) { ctx.beginPath(); ctx.moveTo(x, 6); ctx.lineTo(x, 250); ctx.stroke(); }
+  for (let x = 56; x < 1024; x += 96) {
+    ctx.beginPath(); ctx.arc(x, 40, 14, Math.PI * .2, Math.PI * 1.8); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, 216, 14, Math.PI * 1.2, Math.PI * 2.8); ctx.stroke();
+  }
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(1024, 20); ctx.moveTo(0, 236); ctx.lineTo(1024, 236); ctx.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+// Tableau d'autel : la Vierge au manteau bleu, nimbée.
+function altarPaintingTexture() {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 384;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 384); g.addColorStop(0, '#5a5040'); g.addColorStop(1, '#2c2620');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 384);
+  ctx.fillStyle = 'rgba(240,210,130,.55)'; ctx.beginPath(); ctx.arc(128, 105, 46, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#e8d6bd'; ctx.beginPath(); ctx.ellipse(128, 110, 22, 27, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#35588a'; ctx.beginPath(); ctx.moveTo(128, 82); ctx.quadraticCurveTo(64, 160, 72, 350); ctx.lineTo(184, 350); ctx.quadraticCurveTo(192, 160, 128, 82); ctx.fill();
+  ctx.fillStyle = '#c6574a'; ctx.beginPath(); ctx.moveTo(110, 150); ctx.lineTo(146, 150); ctx.lineTo(154, 350); ctx.lineTo(102, 350); ctx.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+function mergeByMaterial(group) {
+  group.updateMatrixWorld(true);
+  const buckets = new Map();
+  group.traverse(o => {
+    if (!o.isMesh) return;
+    const geometry = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    for (const name of Object.keys(geometry.attributes)) if (!['position', 'normal', 'uv'].includes(name)) geometry.deleteAttribute(name);
+    geometry.applyMatrix4(o.matrixWorld);
+    if (!buckets.has(o.material)) buckets.set(o.material, []);
+    buckets.get(o.material).push(geometry);
+  });
+  group.clear();
+  for (const [material, geometries] of buckets) {
+    const combined = new THREE.Mesh(mergeGeometries(geometries, false), material);
+    combined.castShadow = true; combined.receiveShadow = true; group.add(combined);
+    geometries.forEach(g => g.dispose());
+  }
+}
+
 export function createChurch() {
   const church = new THREE.Group();
   church.name = 'Église Notre-Dame d’Arcachon';
+  // Côté gauche en entrant par le grand portail (x négatif) : chapelle des Marins, annexe,
+  // porche latéral et colonne mariale. Construits à droite puis retournés en miroir.
+  const chapel = new THREE.Group(); chapel.name = 'Chapelle des Marins';
+  let target = church;
   const brickMap = brickTexture(), stoneMap = stoneTexture();
   // Tuiles plates brun-rouge (nef, transept, chevet) et tuiles canal orangées (bas-côtés).
   const roofMap = tileTexture('#4a2f27', ['#6b4033', '#74463a', '#623a2f', '#7a4b3c', '#5e372c'], 22, 30, .22);
@@ -114,16 +213,16 @@ export function createChurch() {
     blue: new THREE.MeshStandardMaterial({ color: 0x548aa0, roughness: .7 }),
   };
 
-  function mesh(geometry, material, parent = church, shadow = true) {
+  function mesh(geometry, material, parent = target, shadow = true) {
     const m = new THREE.Mesh(geometry, material);
     m.castShadow = shadow; m.receiveShadow = true;
     parent.add(m); return m;
   }
-  function box(w, h, d, x, y, z, material = mat.stone, parent = church) {
+  function box(w, h, d, x, y, z, material = mat.stone, parent = target) {
     const m = mesh(new THREE.BoxGeometry(w, h, d), material, parent);
     m.position.set(x, y, z); return m;
   }
-  function cylinder(rt, rb, h, segments, x, y, z, material, parent = church) {
+  function cylinder(rt, rb, h, segments, x, y, z, material, parent = target) {
     const m = mesh(new THREE.CylinderGeometry(rt, rb, h, segments), material, parent);
     m.position.set(x, y, z); return m;
   }
@@ -216,7 +315,7 @@ export function createChurch() {
     const minute = box(.045, radius * .72, .06, .20, .23, .14, mat.metal, g); minute.rotation.z = -.72;
     return g;
   }
-  function gableRoof(width, length, eaveY, ridgeY, x, z, rotationY = 0, roofMat = mat.roof, parent = church) {
+  function gableRoof(width, length, eaveY, ridgeY, x, z, rotationY = 0, roofMat = mat.roof, parent = target) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotationY; parent.add(g);
     const rise = ridgeY - eaveY, half = width / 2, slope = Math.hypot(half, rise), angle = Math.atan2(rise, half);
     for (const side of [-1, 1]) {
@@ -228,15 +327,15 @@ export function createChurch() {
     const ridge = cylinder(.13, .13, length + .55, 8, 0, ridgeY + .08, 0, roofMat, g); ridge.rotation.x = Math.PI / 2;
     return g;
   }
-  function gableWall(width, baseY, eaveY, ridgeY, x, z, rotationY = 0, material = mat.brick) {
+  function gableWall(width, baseY, eaveY, ridgeY, x, z, rotationY = 0, material = mat.brick, parent = target) {
     const shape = new THREE.Shape();
     shape.moveTo(-width / 2, baseY); shape.lineTo(width / 2, baseY); shape.lineTo(width / 2, eaveY);
     shape.lineTo(0, ridgeY); shape.lineTo(-width / 2, eaveY); shape.closePath();
-    const g = mesh(new THREE.ExtrudeGeometry(shape, { depth: .35, bevelEnabled: false }), material);
+    const g = mesh(new THREE.ExtrudeGeometry(shape, { depth: .35, bevelEnabled: false }), material, parent);
     g.position.set(x, 0, z); g.rotation.y = rotationY; return g;
   }
   // Chaînage d'angle en pierre « en dents d'engrenage » : blocs alternés longs / courts.
-  function quoins(x, z, y0, y1, size = 1, parent = church) {
+  function quoins(x, z, y0, y1, size = 1, parent = target) {
     const h = .5 * size;
     for (let i = 0, y = y0 + h / 2; y < y1; i++, y += h + .04) {
       const longX = i % 2 === 0;
@@ -257,7 +356,7 @@ export function createChurch() {
     const q = quatrefoil(foil); q.position.set(0, eaveY + (ridgeY - eaveY) * .38, .34); g.add(q);
     return g;
   }
-  function cross(x, y, z, scale = 1, parent = church) {
+  function cross(x, y, z, scale = 1, parent = target) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.scale.setScalar(scale); parent.add(g);
     box(.12, 1.25, .12, 0, .55, 0, mat.metal, g); box(.72, .12, .12, 0, .78, 0, mat.metal, g);
     return g;
@@ -324,16 +423,6 @@ export function createChurch() {
     for (const dz of [-4.25, 4.25]) quoins(side * 15.2, -16 + dz, 1.8, 13.5);
     cross(side * 15.15, 19.55, -16, .8);
   }
-
-  // Petit porche latéral (porte bordeaux) près de la colonne mariale.
-  box(3.0, 4.6, 3.4, 12.6, 4.1, -6.4, mat.brick);
-  box(3.2, .9, 3.6, 12.6, 2.25, -6.4, mat.ironstone);
-  gableRoof(3.6, 3.6, 6.4, 7.6, 12.6, -6.4, Math.PI / 2, mat.canal);
-  gableWall(3.4, 1.8, 6.4, 7.6, 14.1, -6.4, Math.PI / 2);
-  const porchDoor = new THREE.Group(); porchDoor.position.set(14.47, 1.8, -6.4); porchDoor.rotation.y = Math.PI / 2; church.add(porchDoor);
-  mesh(new THREE.ShapeGeometry(pointedPath(new THREE.Shape(), 1.5, 2.8, 0), 16), mat.door, porchDoor);
-  const porchArch = archRing(1.95, 3.15, .2); porchArch.position.z = .02; porchDoor.add(porchArch);
-  for (const dz of [-1.55, 1.55]) quoins(14.15, -6.4 + dz, 1.8, 6.3, .7);
 
   // Chevet polygonal, volontairement interprété à partir des vues disponibles.
   cylinder(6.9, 6.9, 12.2, 8, 0, 7.9, -25.0, mat.brick);
@@ -447,8 +536,24 @@ export function createChurch() {
   }
   cross(0, 45.25, 5.25, .9);
 
+  mergeByMaterial(church);
+
+  // ---------------------------------------------------------------------------------
+  // Chapelle des Marins (1722), accolée au flanc de l'église, et son annexe basse.
+  // Intérieur visitable : plafond de bois peint, retables dorés, grille en fer forgé.
+  target = chapel;
+  // Petit porche latéral (porte bordeaux) près de la colonne mariale.
+  box(3.0, 4.6, 3.4, 12.6, 4.1, -6.4, mat.brick);
+  box(3.2, .9, 3.6, 12.6, 2.25, -6.4, mat.ironstone);
+  gableRoof(3.6, 3.6, 6.4, 7.6, 12.6, -6.4, Math.PI / 2, mat.canal);
+  gableWall(3.4, 1.8, 6.4, 7.6, 14.1, -6.4, Math.PI / 2);
+  const porchDoor = new THREE.Group(); porchDoor.position.set(14.47, 1.8, -6.4); porchDoor.rotation.y = Math.PI / 2; chapel.add(porchDoor);
+  mesh(new THREE.ShapeGeometry(pointedPath(new THREE.Shape(), 1.5, 2.8, 0), 16), mat.door, porchDoor);
+  const porchArch = archRing(1.95, 3.15, .2); porchArch.position.z = .02; porchDoor.add(porchArch);
+  for (const dz of [-1.55, 1.55]) quoins(14.15, -6.4 + dz, 1.8, 6.3, .7);
+
   // Statue latérale inspirée de la vue du transept.
-  const statue = new THREE.Group(); statue.position.set(18.0, 0, -9.0); church.add(statue);
+  const statue = new THREE.Group(); statue.position.set(18.0, 0, -9.0); chapel.add(statue);
   for (let i = 0; i < 3; i++) cylinder(1.2 - i * .18, 1.3 - i * .18, .22, 12, 0, .11 + i * .22, 0, mat.stoneDark, statue);
   cylinder(.55, .75, 3.4, 12, 0, 2.2, 0, mat.stone, statue);
   cylinder(.8, .55, .32, 12, 0, 4.0, 0, mat.stone, statue);
@@ -459,24 +564,138 @@ export function createChurch() {
     const arm = cylinder(.09, .12, .95, 8, side * .34, 5.55, 0, mat.statue, statue); arm.rotation.z = side * -.65;
   }
 
-  // Assemblage par matériau : la maquette reste détaillée sans multiplier les appels de rendu.
-  church.updateMatrixWorld(true);
-  const buckets = new Map();
-  church.traverse(o => {
-    if (!o.isMesh) return;
-    const geometry = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
-    geometry.applyMatrix4(o.matrixWorld);
-    if (!buckets.has(o.material)) buckets.set(o.material, []);
-    buckets.get(o.material).push(geometry);
-  });
-  church.clear();
-  for (const [material, geometries] of buckets) {
-    const merged = mergeGeometries(geometries, false);
-    const combined = new THREE.Mesh(merged, material);
-    combined.castShadow = true; combined.receiveShadow = true; church.add(combined);
-    geometries.forEach(g => g.dispose());
+  const X0 = 11.2, X1 = 19.4, Z0 = 0, Z1 = 7.2, T = .45, FLOOR = 1.8, EAVE = 6.6, CZ = (Z0 + Z1) / 2, CX = (X0 + X1) / 2;
+  const cm = {
+    render: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .95, color: 0xdcd6ca }),
+    zinc: new THREE.MeshStandardMaterial({ color: 0x8a9294, roughness: .55, metalness: .3 }),
+    wall: new THREE.MeshStandardMaterial({ map: panelWallTexture(), roughness: .85 }),
+    wainscot: new THREE.MeshStandardMaterial({ color: 0x8e9ea2, roughness: .8 }),
+    ceiling: new THREE.MeshStandardMaterial({ map: paintedCeilingTexture(), roughness: .9, side: THREE.DoubleSide }),
+    floor: new THREE.MeshStandardMaterial({ map: tometteTexture(), roughness: .85 }),
+    gold: new THREE.MeshStandardMaterial({ color: 0xd1a646, roughness: .38, metalness: .45, emissive: 0x3d2a08, emissiveIntensity: .55 }),
+    painting: new THREE.MeshStandardMaterial({ map: altarPaintingTexture(), roughness: .7 }),
+    marble: new THREE.MeshStandardMaterial({ color: 0xece8e0, roughness: .35 }),
+    wood: new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: .6 }),
+    iron: new THREE.MeshStandardMaterial({ map: grilleTexture(), alphaTest: .5, side: THREE.DoubleSide, roughness: .5, metalness: .4, color: 0x2a2a2a }),
+    daylight: new THREE.MeshStandardMaterial({ color: 0xbfd6e4, emissive: 0x9cc0d8, emissiveIntensity: .9, roughness: .3 }),
+    candle: new THREE.MeshStandardMaterial({ color: 0xfff2d6, emissive: 0xffc46b, emissiveIntensity: 1.6 }),
+  };
+  const C = chapel;
+  // Gros œuvre extérieur : moellons de garluche, chaînages et encadrements de pierre.
+  box(X1 - X0, FLOOR, Z1 - Z0, CX, FLOOR / 2, CZ, mat.ironstone, C);
+  box(X1 - X0, EAVE, T, CX, EAVE / 2, Z0 + T / 2, mat.ironstone, C);
+  box(X1 - X0, EAVE, T, CX, EAVE / 2, Z1 - T / 2, mat.ironstone, C);
+  box(T, EAVE, Z1 - Z0, X1 - T / 2, EAVE / 2, CZ, mat.ironstone, C);
+  box(T, EAVE, Z1 - Z0, X0 + T / 2, EAVE / 2, CZ, mat.ironstone, C);
+  gableWall(Z1 - Z0, EAVE - .05, EAVE, 8.9, X1 - .35, CZ, Math.PI / 2, mat.ironstone, C);
+  gableRoof(Z1 - Z0 + .5, X1 - X0 + .3, EAVE, 8.9, CX, CZ, Math.PI / 2, mat.canal, C);
+  for (const z of [Z0, Z1]) { quoins(X1 - .2, z + (z ? -.2 : .2), 0, EAVE, .9, C); box(X1 - X0 + .1, .22, .62, CX, EAVE - .1, z, mat.stone, C); }
+  cross(X1 + .05, 8.95, CZ, .55, C);
+  const gableLancet = archWindow(.75, 3.2, { mullion: false, frame: .2 }); gableLancet.position.set(X1 + .01, 2.6, CZ); gableLancet.rotation.y = Math.PI / 2; C.add(gableLancet);
+  const gableOculus = quatrefoil(.36); gableOculus.position.set(X1 + .02, 7.0, CZ); gableOculus.rotation.y = Math.PI / 2; C.add(gableOculus);
+  for (const [z, ry] of [[Z1 + .01, 0], [Z0 - .01, Math.PI]]) {
+    const w = archWindow(.7, 2.2, { mullion: false, frame: .2 }); w.position.set(15.6, 3.25, z); w.rotation.y = ry; C.add(w);
   }
-  return { church, materials: mat, hotspots: {
+  // Annexe basse enduite, ses deux groupes de trois fenêtres et sa plaque.
+  const AX0 = 11.05, AX1 = 12.55, AZ0 = -4.6, AZ1 = Z0;
+  box(AX1 - AX0, 3.0, AZ1 - AZ0, (AX0 + AX1) / 2, FLOOR + 1.5, (AZ0 + AZ1) / 2, cm.render, C);
+  const flat = box(AX1 - AX0 + .3, .16, AZ1 - AZ0 + .1, (AX0 + AX1) / 2 + .05, FLOOR + 3.08, (AZ0 + AZ1) / 2, cm.zinc, C); flat.rotation.z = -.06;
+  box(.12, .3, AZ1 - AZ0, AX1 + .02, FLOOR + 2.86, (AZ0 + AZ1) / 2, mat.stone, C);
+  for (const zc of [-3.45, -1.45]) {
+    box(.1, 1.55, 1.55, AX1 + .02, FLOOR + 1.45, zc, mat.stone, C);
+    for (const dz of [-.46, 0, .46]) { const w = archWindow(.34, 1.2, { mullion: false, frame: .07 }); w.position.set(AX1 + .08, FLOOR + .78, zc + dz); w.rotation.y = Math.PI / 2; C.add(w); }
+  }
+  box(.05, .8, .6, AX1 + .03, FLOOR + 1.5, -.45, mat.plaque, C);
+
+  // Intérieur.
+  const IX0 = X0 + T, IX1 = X1 - T, IZ0 = Z0 + T, IZ1 = Z1 - T, IW = IZ1 - IZ0, WALL_TOP = 5.6, RISE = 1.0;
+  box(IX1 - IX0, .04, IW, CX, FLOOR + .02, CZ, cm.floor, C);
+  for (const [z, d] of [[IZ0 + .03, 1], [IZ1 - .03, -1]]) {
+    box(IX1 - IX0, WALL_TOP - FLOOR, .05, CX, (FLOOR + WALL_TOP) / 2, z, cm.wall, C);
+    box(IX1 - IX0, .95, .07, CX, FLOOR + .48, z + d * .02, cm.wainscot, C);
+    box(IX1 - IX0, .12, .14, CX, WALL_TOP - .05, z + d * .04, cm.gold, C);       // corniche dorée
+    const pane = mesh(new THREE.ShapeGeometry(pointedPath(new THREE.Shape(), .62, 2.1, 0), 16), cm.daylight, C, false);
+    pane.position.set(15.6, 3.3, z + d * .04); pane.rotation.y = d > 0 ? 0 : Math.PI;
+    const frame = archRing(.82, 2.3, .14); frame.position.set(15.6, 3.2, z + d * .05); frame.rotation.y = pane.rotation.y; C.add(frame);
+    box(.95, .1, .16, 15.6, 3.18, z + d * .08, mat.stone, C);
+  }
+  for (const [x, d] of [[IX0 + .03, 1], [IX1 - .03, -1]]) {
+    box(.05, WALL_TOP + RISE + .2 - FLOOR, IW, x, (FLOOR + WALL_TOP + RISE + .2) / 2, CZ, cm.wall, C);
+    box(.07, .95, IW, x + d * .02, FLOOR + .48, CZ, cm.wainscot, C);
+  }
+  // Voûte lambrissée peinte (segment de cylindre).
+  const R = ((IW / 2) ** 2 + RISE ** 2) / (2 * RISE), half = Math.asin((IW / 2) / R);
+  const vault = mesh(new THREE.CylinderGeometry(R, R, IX1 - IX0, 48, 1, true, Math.PI / 2 - half, half * 2), cm.ceiling, C);
+  vault.rotation.z = Math.PI / 2; vault.position.set(CX, WALL_TOP + RISE - R, CZ);
+  // Bancs.
+  for (let row = 0; row < 5; row++) for (const zc of [IZ0 + 1.35, IZ1 - 1.35]) {
+    const x = IX0 + 1.0 + row * .78;
+    box(.38, .07, 2.2, x, FLOOR + .45, zc, cm.wood, C);
+    box(.06, .5, 2.2, x - .2, FLOOR + .78, zc, cm.wood, C);
+    for (const e of [-1.08, 1.08]) box(.5, .9, .07, x - .02, FLOOR + .45, zc + e, cm.wood, C);
+  }
+  // Chœur surélevé, muret et grille en fer forgé.
+  const GX = 16.1;
+  box(IX1 - GX, .16, IW, (GX + IX1) / 2, FLOOR + .08, CZ, mat.stone, C);
+  box(.32, .85, IW, GX, FLOOR + .43, CZ, cm.wainscot, C);
+  box(.4, .08, IW, GX, FLOOR + .88, CZ, mat.stone, C);
+  const grille = mesh(new THREE.PlaneGeometry(IW, 1.9), cm.iron, C, false); grille.position.set(GX, FLOOR + 1.83, CZ); grille.rotation.y = Math.PI / 2;
+  const crest = mesh(new THREE.PlaneGeometry(1.6, .45), cm.iron, C, false); crest.position.set(GX, FLOOR + 3.03, CZ); crest.rotation.y = Math.PI / 2;
+  for (const dz of [-.8, .8]) box(.06, 2.4, .06, GX, FLOOR + 2.05, CZ + dz, mat.metal, C);
+  // Retable du maître-autel.
+  const RX = IX1 - .08;
+  box(.75, 1.0, 2.2, RX - .55, FLOOR + .66, CZ, cm.marble, C);
+  box(.5, .55, .8, RX - .3, FLOOR + 1.43, CZ, cm.gold, C);                       // tabernacle
+  box(.06, 2.0, 1.25, RX - .02, FLOOR + 2.85, CZ, cm.painting, C);
+  box(.1, 2.3, 1.55, RX + .01, FLOOR + 2.85, CZ, cm.gold, C);
+  for (const dz of [-1.2, -.95, .95, 1.2]) cylinder(.09, .1, 2.7, 12, RX - .25, FLOOR + 2.65, CZ + dz, cm.gold, C);
+  box(.45, .3, 3.0, RX - .2, FLOOR + 4.15, CZ, cm.gold, C);                       // entablement
+  const pediment = mesh(new THREE.ConeGeometry(1.5, .9, 3), cm.gold, C); pediment.position.set(RX - .15, FLOOR + 4.75, CZ); pediment.rotation.set(Math.PI / 2, 0, Math.PI / 2); pediment.scale.set(1, .12, 1);
+  const glory = mesh(new THREE.TorusGeometry(.32, .06, 8, 24), cm.gold, C); glory.position.set(RX - .15, FLOOR + 4.85, CZ); glory.rotation.y = Math.PI / 2;
+  // Retables latéraux, contre les murs du chœur.
+  for (const [z, d] of [[IZ0 + .08, 1], [IZ1 - .08, -1]]) {
+    box(1.3, .9, .5, 17.55, FLOOR + .45, z + d * .25, cm.marble, C);
+    box(.95, 1.5, .05, 17.55, FLOOR + 2.15, z + d * .02, cm.painting, C);
+    box(1.25, 1.85, .07, 17.55, FLOOR + 2.15, z, cm.gold, C);
+    for (const dx of [-.62, .62]) cylinder(.07, .08, 2.0, 10, 17.55 + dx, FLOOR + 2.0, z + d * .15, cm.gold, C);
+    box(1.5, .2, .3, 17.55, FLOOR + 3.1, z + d * .12, cm.gold, C);
+  }
+  // Tableaux de la nef.
+  for (const [z, d] of [[IZ0 + .06, 1], [IZ1 - .06, -1]]) for (const x of [12.9, 14.3]) {
+    box(.9, 1.15, .06, x, FLOOR + 2.2, z, cm.gold, C); box(.74, .98, .03, x, FLOOR + 2.2, z + d * .03, cm.painting, C);
+  }
+  // Lustres.
+  const chapelLights = new THREE.Group();
+  for (const x of [13.7, 17.3]) {
+    box(.03, .9, .03, x, WALL_TOP + .55, CZ, mat.metal, C);
+    const ring = mesh(new THREE.TorusGeometry(.42, .035, 8, 32), cm.gold, C, false); ring.position.set(x, WALL_TOP - .1, CZ); ring.rotation.x = Math.PI / 2;
+    const stem = cylinder(.05, .09, .6, 10, x, WALL_TOP - .1, CZ, cm.gold, C);
+    for (let i = 0; i < 6; i++) {
+      const a = i * TAU / 6;
+      cylinder(.025, .025, .16, 6, x + Math.cos(a) * .42, WALL_TOP + .0, CZ + Math.sin(a) * .42, cm.candle, C);
+    }
+    const light = new THREE.PointLight(0xffd8a0, 9, 9, 1.6); light.position.set(x, WALL_TOP - .2, CZ); chapelLights.add(light);
+  }
+  const altarLight = new THREE.PointLight(0xffe2b8, 6, 6, 1.6); altarLight.position.set(RX - 1.4, FLOOR + 3.2, CZ); chapelLights.add(altarLight);
+  mergeByMaterial(chapel);
+  // Miroir gauche/droite : x opposé, normales corrigées, triangles remis dans le bon sens.
+  for (const m of chapel.children) {
+    const pos = m.geometry.attributes.position, nor = m.geometry.attributes.normal, uv = m.geometry.attributes.uv;
+    for (let i = 0; i < pos.count; i++) { pos.setX(i, -pos.getX(i)); if (nor) nor.setX(i, -nor.getX(i)); }
+    for (const attr of [pos, nor, uv]) {
+      if (!attr) continue;
+      const a = attr.array, k = attr.itemSize;
+      for (let t = 0; t < attr.count; t += 3) for (let c = 0; c < k; c++) {
+        const i1 = (t + 1) * k + c, i2 = (t + 2) * k + c; const tmp = a[i1]; a[i1] = a[i2]; a[i2] = tmp;
+      }
+    }
+    m.geometry.computeBoundingSphere();
+  }
+  for (const l of chapelLights.children) l.position.x = -l.position.x;
+  chapel.add(chapelLights);
+
+  return { church, chapel, materials: mat, hotspots: {
+    chapelle: new THREE.Vector3(-19.7, 7.6, CZ),
     parvis: new THREE.Vector3(0, 4.2, 10.2),
     clocher: new THREE.Vector3(0, 28.5, 8.8),
     rosace: new THREE.Vector3(15.8, 11.2, -16),
