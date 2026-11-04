@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createChurch } from './church.js';
+import { createNave } from './nave.js';
 import { setupGallery } from './gallery.js';
 
 const SEED = 20261104;
@@ -80,6 +81,7 @@ const grassMat = new THREE.MeshStandardMaterial({ color: 0x718064, roughness: 1 
 for (const side of [-1, 1]) box(15, .15, 48, side * 25, .02, -7, grassMat).castShadow = false;
 
 const { church, chapel, hotspots } = createChurch(); scene.add(church, chapel);
+const nave = createNave(); scene.add(nave);
 
 // Mobilier urbain simple et familier.
 const darkMetal = new THREE.MeshStandardMaterial({ color: 0x262e2c, roughness: .55, metalness: .5 });
@@ -141,14 +143,23 @@ const views = {
   clocher: { position: [22, 29, 45], target: [0, 28, 5.3] },
   rosace: { position: [42, 17, -1], target: [13, 12, -16] },
   // Dans le hall d'entrée de l'église, face à la paroi vitrée de la Chapelle des Marins.
-  chapelle: { position: [-9.95, 3.55, 3.6], target: [-10.2, 3.57, 3.6], inside: true },
+  chapelle: { position: [-9.95, 3.55, 3.6], target: [-10.2, 3.57, 3.6], inside: 'chapel' },
+  // Dans la nef : points de vue d'où l'on tourne la tête.
+  nef: { position: [0, 3.5, -1.0], target: [0, 3.53, -1.25], inside: 'nave' },
+  'nef-milieu': { position: [0, 3.5, -10.0], target: [0, 3.55, -10.25], inside: 'nave' },
+  'nef-choeur': { position: [0, 3.7, -16.6], target: [0, 3.78, -16.85], inside: 'nave' },
+  'nef-bascote': { position: [-8.7, 3.4, -1.6], target: [-8.7, 3.43, -1.85], inside: 'nave' },
+  'nef-orgue': { position: [0, 3.5, -15.0], target: [0, 3.62, -14.76], inside: 'nave' },
 };
 const OUTSIDE = { minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minDistance: 18, maxDistance: 125, minPolarAngle: .16, maxPolarAngle: Math.PI / 2 - .025, fov: 43, pan: true };
 // À l'intérieur, la cible reste tout près de l'œil : glisser revient à tourner la tête.
 const INSIDE = { minAzimuthAngle: Math.PI / 2 - 1.15, maxAzimuthAngle: Math.PI / 2 + 1.15, minDistance: .15, maxDistance: .45, minPolarAngle: .55, maxPolarAngle: Math.PI - .45, fov: 64, pan: false };
+const NAVE = { ...INSIDE, minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minPolarAngle: .3, maxPolarAngle: Math.PI - .35 };
 let inside = false;
-function setInside(on) {
-  inside = on; const l = on ? INSIDE : OUTSIDE;
+function setInside(mode) {
+  const on = !!mode; inside = on; const l = mode === 'nave' ? NAVE : on ? INSIDE : OUTSIDE;
+  church.visible = mode !== 'nave'; nave.visible = mode === 'nave';
+  document.body.classList.toggle('in-nave', mode === 'nave');
   Object.assign(controls, { minAzimuthAngle: l.minAzimuthAngle, maxAzimuthAngle: l.maxAzimuthAngle, minDistance: l.minDistance, maxDistance: l.maxDistance, minPolarAngle: l.minPolarAngle, maxPolarAngle: l.maxPolarAngle, enablePan: l.pan });
   controls.zoomToCursor = !on;
   camera.fov = on && innerWidth / innerHeight < .75 ? 84 : l.fov; camera.updateProjectionMatrix();
@@ -163,11 +174,11 @@ const details = {
 let cameraTween = null;
 function setView(name) {
   const v = views[name]; if (!v) return;
-  setInside(!!v.inside);
+  setInside(v.inside || false);
   const toTarget = new THREE.Vector3(...v.target), toPos = new THREE.Vector3(...v.position);
   if (name === 'overview' && innerWidth / innerHeight < .75) toPos.sub(toTarget).multiplyScalar(1.28).add(toTarget);
   cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget };
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name || (b.dataset.view === 'nef' && v.inside === 'nave' && !!b.closest('.view-dock'))));
 }
 function openDetail(name) {
   const d = details[name]; if (!d) return;
@@ -245,7 +256,7 @@ renderer.setAnimationLoop(() => draw());
 window.__seek = () => { cameraTween = null; controls.autoRotate = false; draw(true); };
 window.__play = () => draw(true);
 window.__SCENE_STATS__ = () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries });
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; if (inside) camera.fov = camera.aspect < .75 ? 84 : INSIDE.fov; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); draw(true); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; if (inside) { camera.fov = camera.aspect < .75 ? 84 : INSIDE.fov; camera.updateProjectionMatrix(); } camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); draw(true); });
 draw(true);
 requestAnimationFrame(() => requestAnimationFrame(() => { const loading = document.getElementById('loading'); if (loading) { loading.classList.add('done'); setTimeout(() => loading.remove(), 700); } window.__SCENE_READY__ = true; }));
 const params = new URLSearchParams(location.search);

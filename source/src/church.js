@@ -164,7 +164,7 @@ function altarPaintingTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-function mergeByMaterial(group) {
+export function mergeByMaterial(group) {
   group.updateMatrixWorld(true);
   const buckets = new Map();
   group.traverse(o => {
