@@ -59,31 +59,52 @@ function stoneTexture() {
   }, [2, 2]);
 }
 
-function slateTexture() {
+function tileTexture(base, palette, h, w, rowShadow) {
   return canvasTexture(512, (ctx, s) => {
-    ctx.fillStyle = '#3f4b51'; ctx.fillRect(0, 0, s, s);
-    const h = 34, w = 52;
+    ctx.fillStyle = base; ctx.fillRect(0, 0, s, s);
     for (let row = 0; row < s / h + 1; row++) {
       for (let x = -(row % 2) * w / 2; x < s; x += w) {
-        const c = 53 + Math.floor(random() * 25);
-        ctx.fillStyle = `rgb(${c},${c + 8},${c + 12})`;
+        ctx.fillStyle = palette[Math.floor(random() * palette.length)];
         ctx.fillRect(x + 1, row * h + 1, w - 2, h - 2);
-        ctx.fillStyle = 'rgba(220,230,230,.08)';
+        ctx.fillStyle = `rgba(30,12,8,${rowShadow})`;
+        ctx.fillRect(x + 1, row * h + h - 5, w - 2, 4);
+        ctx.fillStyle = 'rgba(255,220,190,.07)';
         ctx.fillRect(x + 2, row * h + 2, w - 4, 1);
       }
     }
   }, [3, 5]);
 }
 
+// Moellons de garluche : grès ferrugineux brun sombre du soubassement.
+function ironstoneTexture() {
+  return canvasTexture(256, (ctx, s) => {
+    ctx.fillStyle = '#c9bca4'; ctx.fillRect(0, 0, s, s);
+    const colors = ['#4a2e22', '#5b3a2a', '#3d261d', '#6a4532', '#54362a', '#2f211b'];
+    for (let i = 0; i < 260; i++) {
+      const w = 14 + random() * 26, h = 9 + random() * 14, x = random() * s, y = random() * s;
+      ctx.fillStyle = colors[Math.floor(random() * colors.length)];
+      ctx.beginPath(); ctx.ellipse(x, y, w / 2, h / 2, random() * .5 - .25, 0, TAU); ctx.fill();
+    }
+  }, [6, 1]);
+}
+
 export function createChurch() {
   const church = new THREE.Group();
   church.name = 'Église Notre-Dame d’Arcachon';
-  const brickMap = brickTexture(), stoneMap = stoneTexture(), slateMap = slateTexture();
+  const brickMap = brickTexture(), stoneMap = stoneTexture();
+  // Tuiles plates brun-rouge (nef, transept, chevet) et tuiles canal orangées (bas-côtés).
+  const roofMap = tileTexture('#4a2f27', ['#6b4033', '#74463a', '#623a2f', '#7a4b3c', '#5e372c'], 22, 30, .22);
+  const canalMap = tileTexture('#7a3d26', ['#b2603f', '#c06a45', '#a85a3a', '#bb7350', '#9f5034'], 40, 22, .28);
+  const ironMap = ironstoneTexture();
   const mat = {
     brick: new THREE.MeshStandardMaterial({ map: brickMap, roughness: .91, color: 0xf1d7c6 }),
     stone: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .83, color: 0xf1e8d4 }),
     stoneDark: new THREE.MeshStandardMaterial({ color: 0x827c6f, roughness: .96 }),
-    slate: new THREE.MeshStandardMaterial({ map: slateMap, roughness: .79, color: 0xe1e6e5, emissive: 0x101518, emissiveIntensity: .18 }),
+    roof: new THREE.MeshStandardMaterial({ map: roofMap, roughness: .86, color: 0xf2e2da }),
+    canal: new THREE.MeshStandardMaterial({ map: canalMap, roughness: .88, color: 0xf6e4d8 }),
+    spire: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .86, color: 0xe2dccd }),
+    ironstone: new THREE.MeshStandardMaterial({ map: ironMap, roughness: .97 }),
+    plaque: new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: .5 }),
     glass: new THREE.MeshStandardMaterial({ color: 0x173844, roughness: .3, metalness: .12, emissive: 0x071318, emissiveIntensity: .35 }),
     glassBlue: new THREE.MeshStandardMaterial({ color: 0x315d72, roughness: .28, metalness: .08, emissive: 0x0b1d29, emissiveIntensity: .45 }),
     door: new THREE.MeshStandardMaterial({ color: 0x321d25, roughness: .72 }),
@@ -195,16 +216,16 @@ export function createChurch() {
     const minute = box(.045, radius * .72, .06, .20, .23, .14, mat.metal, g); minute.rotation.z = -.72;
     return g;
   }
-  function gableRoof(width, length, eaveY, ridgeY, x, z, rotationY = 0, parent = church) {
+  function gableRoof(width, length, eaveY, ridgeY, x, z, rotationY = 0, roofMat = mat.roof, parent = church) {
     const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotationY; parent.add(g);
     const rise = ridgeY - eaveY, half = width / 2, slope = Math.hypot(half, rise), angle = Math.atan2(rise, half);
     for (const side of [-1, 1]) {
-      const roof = box(slope + .35, .22, length + .5, side * half / 2, (eaveY + ridgeY) / 2, 0, mat.slate, g);
+      const roof = box(slope + .35, .22, length + .5, side * half / 2, (eaveY + ridgeY) / 2, 0, roofMat, g);
       roof.rotation.z = -side * angle;
       const gutter = cylinder(.09, .09, length + .6, 8, side * (half + .08), eaveY - .03, 0, mat.metal, g);
       gutter.rotation.x = Math.PI / 2;
     }
-    const ridge = cylinder(.13, .13, length + .55, 8, 0, ridgeY + .08, 0, mat.slate, g); ridge.rotation.x = Math.PI / 2;
+    const ridge = cylinder(.13, .13, length + .55, 8, 0, ridgeY + .08, 0, roofMat, g); ridge.rotation.x = Math.PI / 2;
     return g;
   }
   function gableWall(width, baseY, eaveY, ridgeY, x, z, rotationY = 0, material = mat.brick) {
@@ -213,6 +234,28 @@ export function createChurch() {
     shape.lineTo(0, ridgeY); shape.lineTo(-width / 2, eaveY); shape.closePath();
     const g = mesh(new THREE.ExtrudeGeometry(shape, { depth: .35, bevelEnabled: false }), material);
     g.position.set(x, 0, z); g.rotation.y = rotationY; return g;
+  }
+  // Chaînage d'angle en pierre « en dents d'engrenage » : blocs alternés longs / courts.
+  function quoins(x, z, y0, y1, size = 1, parent = church) {
+    const h = .5 * size;
+    for (let i = 0, y = y0 + h / 2; y < y1; i++, y += h + .04) {
+      const longX = i % 2 === 0;
+      box(longX ? 1.15 * size : .62 * size, h, longX ? .62 * size : 1.15 * size, x, y, z, mat.stone, parent);
+    }
+  }
+  // Petit gâble de pierre (pignon décoratif) avec un remplage en trèfle.
+  function stoneGable(width, baseY, eaveY, ridgeY, x, z, rotationY, foil = .3) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rotationY; church.add(g);
+    const shape = new THREE.Shape();
+    shape.moveTo(-width / 2, baseY); shape.lineTo(width / 2, baseY); shape.lineTo(width / 2, eaveY);
+    shape.lineTo(0, ridgeY); shape.lineTo(-width / 2, eaveY); shape.closePath();
+    mesh(new THREE.ExtrudeGeometry(shape, { depth: .3, bevelEnabled: false }), mat.stone, g);
+    for (const side of [-1, 1]) {
+      box(.34, ridgeY - eaveY + .6, .4, side * (width / 2 + .02), eaveY - .2, .18, mat.stone, g);
+      const pin = mesh(new THREE.ConeGeometry(.24, .9, 4), mat.stone, g); pin.position.set(side * (width / 2 + .02), eaveY + .55, .18); pin.rotation.y = Math.PI / 4;
+    }
+    const q = quatrefoil(foil); q.position.set(0, eaveY + (ridgeY - eaveY) * .38, .34); g.add(q);
+    return g;
   }
   function cross(x, y, z, scale = 1, parent = church) {
     const g = new THREE.Group(); g.position.set(x, y, z); g.scale.setScalar(scale); parent.add(g);
@@ -236,39 +279,66 @@ export function createChurch() {
 
   // Vaisseau central, bas-côtés et transept.
   box(14, 12.5, 30, 0, 8.05, -9.5, mat.brick);
+  for (const y of [11.55, 14.15]) box(14.2, .2, 30.1, 0, y, -9.5, mat.stone);
   gableWall(14, 1.8, 14.3, 20.4, 0, 5.35);
   gableWall(14, 1.8, 14.3, 20.4, 0, -24.65, Math.PI);
   gableRoof(14.8, 30.8, 14.3, 20.4, 0, -9.5);
   for (const side of [-1, 1]) {
     box(4.1, 6.4, 28.5, side * 9.0, 5.0, -9.2, mat.brick);
-    gableRoof(4.6, 29.1, 8.2, 10.35, side * 9.0, -9.2);
+    gableRoof(4.6, 29.1, 8.2, 10.35, side * 9.0, -9.2, 0, mat.canal);
+    box(4.3, .95, 28.7, side * 9.0, 2.27, -9.2, mat.ironstone);
+    for (const y of [5.35, 8.05]) box(4.25, .18, 28.6, side * 9.0, y, -9.2, mat.stone);
     for (const z of [1.2, -4.2, -9.6, -21.2]) {
       const lower = archWindow(1.65, 3.8, { mullion: false, blue: true });
       lower.position.set(side * 11.08, 2.8, z); lower.rotation.y = side * Math.PI / 2; church.add(lower);
-      const upper = pairedWindow(1.7, 3.25, { quatrefoil: false });
-      upper.position.set(side * 7.08, 9.6, z); upper.rotation.y = side * Math.PI / 2; church.add(upper);
+      const upper = archWindow(1.15, 2.9, { mullion: false });
+      upper.position.set(side * 7.08, 10.6, z); upper.rotation.y = side * Math.PI / 2; church.add(upper);
       box(.75, 7.1, 1.05, side * 11.25, 5.35, z - 2.25, mat.stone);
       const cap = box(.95, .28, 1.2, side * 11.25, 8.95, z - 2.25, mat.stone); cap.rotation.z = side * .13;
       box(.52, 4.0, .8, side * 7.35, 12.2, z - 2.25, mat.stone);
     }
   }
   box(30.4, 11.8, 8.5, 0, 7.7, -16.0, mat.brick);
+  box(30.6, .95, 8.7, 0, 2.27, -16.0, mat.ironstone);
   gableRoof(9.1, 31.0, 13.6, 19.4, 0, -16.0, Math.PI / 2);
   for (const side of [-1, 1]) {
-    gableWall(8.5, 1.8, 13.6, 19.4, side * 15.05, -16.0, side * Math.PI / 2);
-    const rose = roseWindow(2.25); rose.position.set(side * 15.43, 11.0, -16.0); rose.rotation.y = side * Math.PI / 2; church.add(rose);
-    for (const dz of [-2.1, 2.1]) {
-      const win = pairedWindow(1.45, 3.8, { quatrefoil: true });
-      win.position.set(side * 15.44, 4.1, -16 + dz); win.rotation.y = side * Math.PI / 2; church.add(win);
+    const face = side * 15.43, out = side * .02, rot = side * Math.PI / 2;
+    gableWall(8.5, 1.8, 13.6, 19.4, side * 15.05, -16.0, rot);
+    // Grande rose à huit pétales inscrite dans un arc de décharge en pierre.
+    const rose = roseWindow(2.3); rose.position.set(face, 10.9, -16.0); rose.rotation.y = rot; church.add(rose);
+    const roseFrame = mesh(new THREE.TorusGeometry(2.62, .3, 8, 64), mat.stone); roseFrame.position.set(face + out * 4, 10.9, -16); roseFrame.rotation.y = rot;
+    const relieving = archRing(7.3, 11.9, .42); relieving.position.set(face + out * 3, 3.75, -16); relieving.rotation.y = rot; church.add(relieving);
+    for (const dz of [-3.48, 3.48]) {
+      box(.5, 6.4, .5, face + out * 6, 4.95, -16 + dz, mat.stone);
+      const cap = box(.62, .3, .62, face + out * 6, 8.3, -16 + dz, mat.stone);
     }
-    box(.8, 11.8, .9, side * 15.3, 7.7, -20.0, mat.stone);
-    box(.8, 11.8, .9, side * 15.3, 7.7, -12.0, mat.stone);
+    // Trois petites lancettes au sommet du pignon.
+    for (const dz of [-.72, 0, .72]) {
+      const l = archWindow(.42, dz === 0 ? 1.45 : 1.2, { mullion: false, frame: .1 }); l.position.set(face, 16.25, -16 + dz); l.rotation.y = rot; church.add(l);
+    }
+    // Frontispice de pierre à quadrilobe, flanqué de deux petits gâbles à trèfle, et plaque commémorative.
+    stoneGable(3.3, 1.8, 6.4, 8.4, face - side * .08, -16, rot, .5);
+    for (const dz of [-2.75, 2.75]) stoneGable(1.75, 1.8, 4.1, 5.35, face - side * .1, -16 + dz, rot, .22);
+    box(.06, 1.25, .9, face + side * .3, 4.1, -16, mat.plaque);
+    // Chaînages en dents d'engrenage aux angles du transept.
+    for (const dz of [-4.25, 4.25]) quoins(side * 15.2, -16 + dz, 1.8, 13.5);
     cross(side * 15.15, 19.55, -16, .8);
   }
 
+  // Petit porche latéral (porte bordeaux) près de la colonne mariale.
+  box(3.0, 4.6, 3.4, 12.6, 4.1, -6.4, mat.brick);
+  box(3.2, .9, 3.6, 12.6, 2.25, -6.4, mat.ironstone);
+  gableRoof(3.6, 3.6, 6.4, 7.6, 12.6, -6.4, Math.PI / 2, mat.canal);
+  gableWall(3.4, 1.8, 6.4, 7.6, 14.1, -6.4, Math.PI / 2);
+  const porchDoor = new THREE.Group(); porchDoor.position.set(14.47, 1.8, -6.4); porchDoor.rotation.y = Math.PI / 2; church.add(porchDoor);
+  mesh(new THREE.ShapeGeometry(pointedPath(new THREE.Shape(), 1.5, 2.8, 0), 16), mat.door, porchDoor);
+  const porchArch = archRing(1.95, 3.15, .2); porchArch.position.z = .02; porchDoor.add(porchArch);
+  for (const dz of [-1.55, 1.55]) quoins(14.15, -6.4 + dz, 1.8, 6.3, .7);
+
   // Chevet polygonal, volontairement interprété à partir des vues disponibles.
   cylinder(6.9, 6.9, 12.2, 8, 0, 7.9, -25.0, mat.brick);
-  const apseRoof = mesh(new THREE.ConeGeometry(7.35, 6.3, 8), mat.slate); apseRoof.position.set(0, 17.15, -25.0); apseRoof.rotation.y = Math.PI / 8;
+  cylinder(7.0, 7.0, .95, 8, 0, 2.27, -25.0, mat.ironstone);
+  const apseRoof = mesh(new THREE.ConeGeometry(7.35, 6.3, 8), mat.roof); apseRoof.position.set(0, 17.15, -25.0); apseRoof.rotation.y = Math.PI / 8;
   for (let i = 0; i < 5; i++) {
     const a = Math.PI * .55 + i * Math.PI * .225;
     const win = archWindow(1.35, 3.7, { mullion: false, blue: true });
@@ -281,30 +351,40 @@ export function createChurch() {
     box(5.6, 8.5, 6.0, side * 6.35, 6.05, 6.0, mat.brick);
     gableWall(5.6, 1.8, 10.3, 12.35, side * 6.35, 8.85);
     gableRoof(6.0, 6.5, 10.3, 12.35, side * 6.35, 6.0);
-    const win = pairedWindow(2.15, 4.7, { quatrefoil: true, blue: true });
-    win.position.set(side * 6.35, 3.0, 9.24); church.add(win);
-    box(.75, 8.5, .8, side * 9.15, 6.05, 9.05, mat.stone);
+    const win = pairedWindow(2.15, 4.7, { quatrefoil: false, blue: true });
+    win.position.set(side * 6.35, 3.2, 9.24); church.add(win);
+    const oculus = roseWindow(.55); oculus.position.set(side * 6.35, 8.55, 9.25); church.add(oculus);
+    box(5.8, .95, 6.2, side * 6.35, 2.27, 6.0, mat.ironstone);
+    quoins(side * 8.9, 8.75, 1.8, 10.2);
     cross(side * 6.35, 12.5, 8.9, .52);
   }
 
-  // Tour en brique et pierre.
+  // Tour : panneaux de brique entre de puissants contreforts d'angle en pierre.
   box(7.3, 25.0, 7.3, 0, 14.3, 5.25, mat.brick);
-  for (const y of [2.05, 9.5, 16.8, 25.7]) box(7.65, .28, 7.65, 0, y, 5.25, mat.stone);
+  box(7.5, .95, 7.5, 0, 2.27, 5.25, mat.ironstone);
+  for (const y of [9.0, 19.0, 25.7]) box(7.65, .3, 7.65, 0, y, 5.25, mat.stone);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const x = sx * 3.72, z = 5.25 + sz * 3.72;
-    box(.82, 10.0, .82, x, 6.8, z, mat.stone);
-    box(.66, 8.0, .66, x, 15.75, z, mat.stone);
-    box(.54, 6.2, .54, x, 22.8, z, mat.stone);
-    for (let level = 0; level < 18; level++) {
-      const y = 2.2 + level * 1.28;
-      const longX = level % 2 === 0;
-      box(longX ? 1.12 : .64, .48, longX ? .64 : 1.12, x, y, z, mat.stone);
+    for (const [w, y0, y1] of [[1.45, 1.8, 12.4], [1.35, 12.4, 19.0], [1.22, 19.0, 26.45]]) {
+      const x = sx * (3.65 - w / 2 + .32), z = 5.25 + sz * (3.65 - w / 2 + .32);
+      box(w, y1 - y0, w, x, (y0 + y1) / 2, z, mat.stone);
+      const ledge = box(w + .14, .22, w + .14, x, y1 - .05, z, mat.stone); ledge.rotation.y = 0;
     }
-    const cap = mesh(new THREE.ConeGeometry(.66, 1.0, 4), mat.stone); cap.position.set(x, 26.4, z); cap.rotation.y = Math.PI / 4;
+    const x = sx * 3.3, z = 5.25 + sz * 3.3;
+    const cap = mesh(new THREE.ConeGeometry(.66, 1.0, 4), mat.stone); cap.position.set(x, 26.7, z); cap.rotation.y = Math.PI / 4;
+  }
+  // Tourelle d'escalier ronde, accolée à l'angle arrière.
+  cylinder(.95, .95, 14.6, 16, 4.1, 19.1, 1.3, mat.stone);
+  for (const y of [19.0]) cylinder(1.05, 1.05, .25, 16, 4.1, y, 1.3, mat.stone);
+  const turretCap = mesh(new THREE.ConeGeometry(1.05, 2.4, 16), mat.spire); turretCap.position.set(4.1, 27.6, 1.3);
+  for (const y of [18, 21.5, 24.5]) box(.05, .7, .22, 5.03, y, 1.3, mat.glass);
+  // Faces latérales de la tour : baie géminée et petite rose.
+  for (const side of [-1, 1]) {
+    const sideWin = pairedWindow(2.4, 4.6, { quatrefoil: false }); sideWin.position.set(side * 3.68, 12.7, 5.25); sideWin.rotation.y = side * Math.PI / 2; church.add(sideWin);
+    const sideRose = roseWindow(.62); sideRose.position.set(side * 3.69, 18.2, 5.25); sideRose.rotation.y = side * Math.PI / 2; church.add(sideRose);
   }
 
   // Portail sculpté et portes doubles.
-  const portal = new THREE.Group(); portal.position.set(0, 1.8, 9.02); church.add(portal);
+  const portal = new THREE.Group(); portal.position.set(0, 1.8, 9.02); portal.scale.x = .8; church.add(portal);
   for (let i = 0; i < 3; i++) {
     const ring = archRing(4.35 + i * .48, 6.15 + i * .34, .22, mat.stone);
     ring.position.set(0, -.02 * i, .04 + i * .055); portal.add(ring);
@@ -325,6 +405,7 @@ export function createChurch() {
   // Baies de la tour, horloge et clocher ajouré.
   const frontWindow = pairedWindow(3.25, 5.3, { quatrefoil: true, blue: true }); frontWindow.position.set(0, 9.65, 9.02); church.add(frontWindow);
   const clock = clockFace(1.05); clock.position.set(0, 16.4, 9.04); church.add(clock);
+  const towerArch = archRing(4.25, 9.3, .34); towerArch.position.set(0, 9.25, 9.07); church.add(towerArch);
   const belfry = pairedWindow(3.45, 4.5, { quatrefoil: true, louvers: true }); belfry.position.set(0, 20.3, 9.03); church.add(belfry);
   for (const side of [-1, 1]) {
     const sideBelfry = pairedWindow(3.25, 4.4, { quatrefoil: true, louvers: true });
@@ -345,20 +426,23 @@ export function createChurch() {
     const pinnacle = mesh(new THREE.ConeGeometry(.67, 2.5, 4), mat.stone); pinnacle.position.set(x, 29.8, z); pinnacle.rotation.y = Math.PI / 4;
     cross(x, 31.05, z, .26);
   }
-  const spire = mesh(new THREE.ConeGeometry(3.75, 18.0, 8, 1), mat.slate); spire.position.set(0, 36.2, 5.25); spire.rotation.y = Math.PI / 8;
+  const spire = mesh(new THREE.ConeGeometry(3.75, 18.0, 8, 1), mat.spire); spire.position.set(0, 36.2, 5.25); spire.rotation.y = Math.PI / 8;
   for (let edge = 0; edge < 8; edge++) {
     const a = edge * TAU / 8 + Math.PI / 8;
-    for (let j = 0; j < 12; j++) {
-      const f = (j + .6) / 13, r = 3.75 * (1 - f);
-      const ornament = box(.18 + (1 - f) * .12, .22, .20, Math.cos(a) * r, 27.2 + f * 18, 5.25 + Math.sin(a) * r, mat.stone);
-      ornament.rotation.y = -a;
+    for (let j = 0; j < 16; j++) {
+      const f = (j + .6) / 17, r = 3.75 * (1 - f);
+      const ornament = mesh(new THREE.ConeGeometry(.13 + (1 - f) * .1, .5, 5), mat.stone);
+      ornament.position.set(Math.cos(a) * (r + .12), 27.2 + f * 18, 5.25 + Math.sin(a) * (r + .12));
+      ornament.rotation.set(0, -a, 0); ornament.rotateZ(-Math.PI / 2 + .35);
     }
   }
+  // Petites ouvertures en quadrilobe sur les faces de la flèche.
   for (let level = 0; level < 4; level++) {
-    const f = .24 + level * .16, r = 3.75 * (1 - f);
-    for (const a of [Math.PI / 4, Math.PI * 3 / 4]) {
-      const stud = mesh(new THREE.OctahedronGeometry(.25 + level * .015), mat.stoneDark);
-      stud.position.set(Math.cos(a) * r, 27.2 + f * 18, 5.25 + Math.sin(a) * r);
+    const f = .2 + level * .17, r = 3.75 * (1 - f) * Math.cos(Math.PI / 8) + .04;
+    for (let k = 0; k < 8; k += 2) {
+      const a = k * TAU / 8 + (level % 2) * TAU / 8;
+      const q = quatrefoil(.34 - level * .04); q.position.set(Math.cos(a) * r, 27.2 + f * 18, 5.25 + Math.sin(a) * r);
+      q.rotation.y = Math.PI / 2 - a; church.add(q);
     }
   }
   cross(0, 45.25, 5.25, .9);
