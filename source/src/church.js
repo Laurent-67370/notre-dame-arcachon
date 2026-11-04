@@ -543,14 +543,14 @@ export function createChurch() {
   // Intérieur visitable : plafond de bois peint, retables dorés, grille en fer forgé.
   target = chapel;
   // Petit porche latéral (porte bordeaux) près de la colonne mariale.
-  box(3.0, 4.6, 3.4, 12.6, 4.1, -6.4, mat.brick);
-  box(3.2, .9, 3.6, 12.6, 2.25, -6.4, mat.ironstone);
-  gableRoof(3.6, 3.6, 6.4, 7.6, 12.6, -6.4, Math.PI / 2, mat.canal);
-  gableWall(3.4, 1.8, 6.4, 7.6, 14.1, -6.4, Math.PI / 2);
-  const porchDoor = new THREE.Group(); porchDoor.position.set(14.47, 1.8, -6.4); porchDoor.rotation.y = Math.PI / 2; chapel.add(porchDoor);
+  box(3.0, 4.6, 3.4, 12.6, 4.1, -9.8, mat.brick);
+  box(3.2, .9, 3.6, 12.6, 2.25, -9.8, mat.ironstone);
+  gableRoof(3.6, 3.6, 6.4, 7.6, 12.6, -9.8, Math.PI / 2, mat.canal);
+  gableWall(3.4, 1.8, 6.4, 7.6, 14.1, -9.8, Math.PI / 2);
+  const porchDoor = new THREE.Group(); porchDoor.position.set(14.47, 1.8, -9.8); porchDoor.rotation.y = Math.PI / 2; chapel.add(porchDoor);
   mesh(new THREE.ShapeGeometry(pointedPath(new THREE.Shape(), 1.5, 2.8, 0), 16), mat.door, porchDoor);
   const porchArch = archRing(1.95, 3.15, .2); porchArch.position.z = .02; porchDoor.add(porchArch);
-  for (const dz of [-1.55, 1.55]) quoins(14.15, -6.4 + dz, 1.8, 6.3, .7);
+  for (const dz of [-1.55, 1.55]) quoins(14.15, -9.8 + dz, 1.8, 6.3, .7);
 
   // Statue latérale inspirée de la vue du transept.
   const statue = new THREE.Group(); statue.position.set(18.0, 0, -9.0); chapel.add(statue);
@@ -564,7 +564,7 @@ export function createChurch() {
     const arm = cylinder(.09, .12, .95, 8, side * .34, 5.55, 0, mat.statue, statue); arm.rotation.z = side * -.65;
   }
 
-  const X0 = 11.2, X1 = 19.4, Z0 = 0, Z1 = 7.2, T = .45, FLOOR = 1.8, EAVE = 6.6, CZ = (Z0 + Z1) / 2, CX = (X0 + X1) / 2;
+  const X0 = 11.2, X1 = 19.4, Z0 = -7.4, Z1 = -0.2, T = .45, FLOOR = 1.8, EAVE = 6.6, CZ = (Z0 + Z1) / 2, CX = (X0 + X1) / 2;
   const cm = {
     render: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .95, color: 0xdcd6ca }),
     zinc: new THREE.MeshStandardMaterial({ color: 0x8a9294, roughness: .55, metalness: .3 }),
@@ -601,16 +601,16 @@ export function createChurch() {
   for (const [z, ry] of [[Z1 + .01, 0], [Z0 - .01, Math.PI]]) {
     const w = archWindow(.7, 2.2, { mullion: false, frame: .2 }); w.position.set(15.6, 3.25, z); w.rotation.y = ry; C.add(w);
   }
-  // Annexe basse enduite, ses deux groupes de trois fenêtres et sa plaque.
-  const AX0 = 11.05, AX1 = 12.55, AZ0 = -4.6, AZ1 = Z0;
+  // Annexe basse enduite, ses deux groupes de trois fenêtres et sa plaque (entre la chapelle et la façade).
+  const AX0 = 11.05, AX1 = 12.55, AZ0 = Z1 + .2, AZ1 = 4.4;
   box(AX1 - AX0, 3.0, AZ1 - AZ0, (AX0 + AX1) / 2, FLOOR + 1.5, (AZ0 + AZ1) / 2, cm.render, C);
   const flat = box(AX1 - AX0 + .3, .16, AZ1 - AZ0 + .1, (AX0 + AX1) / 2 + .05, FLOOR + 3.08, (AZ0 + AZ1) / 2, cm.zinc, C); flat.rotation.z = -.06;
   box(.12, .3, AZ1 - AZ0, AX1 + .02, FLOOR + 2.86, (AZ0 + AZ1) / 2, mat.stone, C);
-  for (const zc of [-3.45, -1.45]) {
+  for (const zc of [1.15, 3.25]) {
     box(.1, 1.55, 1.55, AX1 + .02, FLOOR + 1.45, zc, mat.stone, C);
     for (const dz of [-.46, 0, .46]) { const w = archWindow(.34, 1.2, { mullion: false, frame: .07 }); w.position.set(AX1 + .08, FLOOR + .78, zc + dz); w.rotation.y = Math.PI / 2; C.add(w); }
   }
-  box(.05, .8, .6, AX1 + .03, FLOOR + 1.5, -.45, mat.plaque, C);
+  box(.05, .8, .6, AX1 + .03, FLOOR + 1.5, 3.95, mat.plaque, C);
 
   // Intérieur.
   const IX0 = X0 + T, IX1 = X1 - T, IZ0 = Z0 + T, IZ1 = Z1 - T, IW = IZ1 - IZ0, WALL_TOP = 5.6, RISE = 1.0;
@@ -628,7 +628,7 @@ export function createChurch() {
   box(.07, .95, IW, IX1 - .05, FLOOR + .48, CZ, cm.wainscot, C);
   box(.05, WALL_TOP + RISE + .2 - GLASS_TOP, IW, IX0 + .03, (WALL_TOP + RISE + .2 + GLASS_TOP) / 2, CZ, cm.wall, C);
 
-  // Paroi vitrée entre le hall d'entrée de l'église et la chapelle : portes centrales,
+  // Paroi vitrée entre le bas-côté gauche, à l'entrée de l'église, et la chapelle : portes centrales,
   // poignées en laiton, plaques « TIREZ » et rangée de petites croix blanches.
   const GX0 = X0 + T / 2;
   box(.03, GLASS_TOP - FLOOR, Z1 - Z0 - .1, GX0, (FLOOR + GLASS_TOP) / 2, CZ, cm.glass, C);
@@ -645,14 +645,7 @@ export function createChurch() {
     box(.006, .13, .025, GX0 - .02, FLOOR + .92, z, cm.white, C);
     box(.006, .025, .09, GX0 - .02, FLOOR + .95, z, cm.white, C);
   }
-  // Le hall d'entrée, d'où l'on regarde la chapelle.
-  const HX0 = 9.3;
-  box(X0 - HX0, .04, IW, (HX0 + X0) / 2, FLOOR + .02, CZ, cm.slate, C);
-  box(X0 - HX0, .06, IW, (HX0 + X0) / 2, FLOOR + 3.4, CZ, cm.white, C);
-  for (const z of [IZ0 + .03, IZ1 - .03]) box(X0 - HX0, 3.4, .05, (HX0 + X0) / 2, FLOOR + 1.7, z, cm.render, C);
-  box(.05, 3.4, IW, HX0, FLOOR + 1.7, CZ, cm.render, C);
   box(.04, .45, IW, X0 - .02, GLASS_TOP + .2, CZ, cm.render, C);
-  box(X0 - 9.15, 8.2, 2.15, (9.15 + X0) / 2, 4.1, 6.125, mat.brick, C);   // ferme le hall entre le bas-côté et la façade
   // Voûte lambrissée peinte (segment de cylindre).
   const R = ((IW / 2) ** 2 + RISE ** 2) / (2 * RISE), half = Math.asin((IW / 2) / R);
   const vault = mesh(new THREE.CylinderGeometry(R, R, IX1 - IX0, 48, 1, true, Math.PI / 2 - half, half * 2), cm.ceiling, C);
@@ -706,7 +699,6 @@ export function createChurch() {
     }
     const light = new THREE.PointLight(0xffd8a0, 9, 9, 1.6); light.position.set(x, WALL_TOP - .2, CZ); chapelLights.add(light);
   }
-  const hallLight = new THREE.PointLight(0xfff1dc, 3, 5, 1.6); hallLight.position.set(9.9, FLOOR + 3.1, CZ); chapelLights.add(hallLight);
   const altarLight = new THREE.PointLight(0xffe2b8, 6, 6, 1.6); altarLight.position.set(RX - 1.4, FLOOR + 3.2, CZ); chapelLights.add(altarLight);
   mergeByMaterial(chapel);
   // Miroir gauche/droite : x opposé, normales corrigées, triangles remis dans le bon sens.

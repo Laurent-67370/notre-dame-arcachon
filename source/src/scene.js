@@ -142,8 +142,8 @@ const views = {
   parvis: { position: [2, 9.5, 39], target: [0, 12.8, 5] },
   clocher: { position: [22, 29, 45], target: [0, 28, 5.3] },
   rosace: { position: [42, 17, -1], target: [13, 12, -16] },
-  // Dans le hall d'entrée de l'église, face à la paroi vitrée de la Chapelle des Marins.
-  chapelle: { position: [-9.95, 3.55, 3.6], target: [-10.2, 3.57, 3.6], inside: 'chapel' },
+  // Dans le bas-côté gauche, à l'entrée de l'église, face à la paroi vitrée de la Chapelle des Marins.
+  chapelle: { position: [-9.3, 3.55, -3.8], target: [-9.55, 3.57, -3.8], inside: 'nave' },
   // Dans la nef : points de vue d'où l'on tourne la tête.
   nef: { position: [0, 3.5, -1.0], target: [0, 3.53, -1.25], inside: 'nave' },
   'nef-milieu': { position: [0, 3.5, -10.0], target: [0, 3.55, -10.25], inside: 'nave' },
@@ -168,7 +168,7 @@ function setInside(mode) {
 const details = {
   parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'parvis' },
   clocher: { kicker: 'Le repère', title: 'Le clocher', text: 'La tour associe la brique rouge à des chaînages de pierre claire. Au-dessus de l’horloge, les baies jumelées précèdent les pinacles et la grande flèche octogonale.', view: 'clocher' },
-  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé. On la découvre depuis le hall d’entrée de l’église, à travers des parois vitrées.', view: 'chapelle', go: 'Regarder par la vitre' },
+  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé. On la découvre à gauche en entrant dans l’église, à travers des parois vitrées.', view: 'chapelle', go: 'Regarder par la vitre' },
   rosace: { kicker: 'La lumière', title: 'La rosace', text: 'Sur le transept, la rosace compose un motif rayonnant de huit pétales. Son cercle de pierre contraste délicatement avec le mur de brique.', view: 'rosace' },
 };
 let cameraTween = null;
@@ -178,7 +178,7 @@ function setView(name) {
   const toTarget = new THREE.Vector3(...v.target), toPos = new THREE.Vector3(...v.position);
   if (name === 'overview' && innerWidth / innerHeight < .75) toPos.sub(toTarget).multiplyScalar(1.28).add(toTarget);
   cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget };
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name || (b.dataset.view === 'nef' && v.inside === 'nave' && !!b.closest('.view-dock'))));
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name || (b.dataset.view === 'nef' && name.startsWith('nef') && !!b.closest('.view-dock'))));
 }
 function openDetail(name) {
   const d = details[name]; if (!d) return;

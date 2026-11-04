@@ -82,6 +82,9 @@ const balustradeTex = () => canvasTex(512, 64, (ctx, w, h) => {
   }
 });
 
+// CH : position de la paroi vitrée de la chapelle (côté gauche, x négatif).
+const CH = { x0: 11.2, z0: -6.95, z1: -.65, glassTop: 4.8 };
+
 export function createNave() {
   const nave = new THREE.Group(); nave.name = 'Nef';
   const D = THREE.DoubleSide;
@@ -186,8 +189,21 @@ export function createNave() {
       }
     }
     // Bas-côté : mur extérieur, vitraux, voûte en demi-berceau, mur de fond.
-    box(.05, 5.6 - FLOOR + .15, -ZAE, s * AW, (5.6 + FLOOR) / 2, ZAE / 2, m.plaster);
+    if (s > 0) box(.05, 5.6 - FLOOR + .15, -ZAE, s * AW, (5.6 + FLOOR) / 2, ZAE / 2, m.plaster);
+    else {
+      // À gauche en entrant : le mur s'ouvre sur la paroi vitrée de la Chapelle des Marins.
+      const top = 5.75, gz0 = CH.z1, gz1 = CH.z0, gy = CH.glassTop;
+      box(.05, top - FLOOR, -gz0, -AW, (top + FLOOR) / 2, gz0 / 2, m.plaster);
+      box(.05, top - FLOOR, gz1 - ZAE, -AW, (top + FLOOR) / 2, (gz1 + ZAE) / 2, m.plaster);
+      box(.05, top - gy, gz0 - gz1, -AW, (top + gy) / 2, (gz0 + gz1) / 2, m.plaster);
+      const depth = CH.x0 - AW;
+      for (const z of [gz0, gz1]) box(depth, gy - FLOOR, .06, -(AW + depth / 2), (gy + FLOOR) / 2, z, m.plaster);
+      box(depth, .06, gz0 - gz1, -(AW + depth / 2), gy, (gz0 + gz1) / 2, m.plaster);
+      box(depth, .02, gz0 - gz1, -(AW + depth / 2), FLOOR + .01, (gz0 + gz1) / 2, m.floor);
+      box(.12, .14, gz0 - gz1 + .12, -AW + .04, gy + .07, (gz0 + gz1) / 2, m.rib);
+    }
     for (const z of [-4.25, -10.05, -15.85, -21.55]) {
+      if (s < 0 && z > CH.z0 - .5) continue;
       const w = add(shapeFrom(archOutline(0, .8, 0, 1.7, 2.6)), m.glass); w.position.set(s * (AW - .04), 2.6, z); w.rotation.y = Math.PI / 2;
     }
     const ac = aisleCurve(s);
