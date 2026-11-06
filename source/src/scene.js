@@ -448,6 +448,8 @@ function draw(force = false) {
 }
 renderer.setAnimationLoop(() => draw());
 window.__seek = () => { cameraTween = null; controls.autoRotate = false; draw(true); };
+// Pour les vérifications automatiques : placer la caméra librement à l'extérieur.
+window.__cam = (p, t) => { cameraTween = null; setInside(false, true); camera.position.set(...p); controls.target.set(...t); controls.update(); draw(true); };
 window.__play = () => draw(true);
 window.__SCENE_STATS__ = () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries });
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; if (inside) { camera.fov = camera.aspect < .75 ? 84 : INSIDE.fov; camera.updateProjectionMatrix(); } camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); draw(true); });

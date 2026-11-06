@@ -1,6 +1,11 @@
 // Galerie de photos : vignettes groupées par thème et visionneuse plein écran.
 const SECTIONS = [
   ['Extérieur', [
+    ['panorama-flanc', 'Panorama : le clocher, le pignon à la Vierge et le flanc sous les platanes'],
+    ['facade-portail', 'Le pignon à la niche de la Vierge, sa rose et son portail à crochets'],
+    ['portail-niche', 'Le portail latéral, ses colonnettes et sa porte bordeaux'],
+    ['portail-lateral-clocher', 'La façade du clocher, son portail vitré et la grande baie'],
+    ['portail-chapelle', 'Le grand portail ouvert et la Chapelle des Marins en moellons'],
     ['facade-escalier', 'La façade et le grand escalier'],
     ['facade-soleil', 'La façade au soleil, l’horloge et le beffroi'],
     ['clocher-carrefour', 'Le clocher depuis le carrefour'],
