@@ -72,5 +72,6 @@ export function setupGallery(container) {
     const dx = e.changedTouches[0].clientX - startX; startX = null;
     if (Math.abs(dx) > 45) show(current + (dx < 0 ? 1 : -1));
   });
-  return { isOpen: () => box.open, count: photos.length };
+  const openFile = file => { const i = photos.findIndex(p => p.file === file); if (i >= 0) open(i); };
+  return { isOpen: () => box.open, count: photos.length, openFile };
 }

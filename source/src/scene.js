@@ -81,6 +81,17 @@ const grassMat = new THREE.MeshStandardMaterial({ color: 0x718064, roughness: 1 
 for (const side of [-1, 1]) box(15, .15, 48, side * 25, .02, -7, grassMat).castShadow = false;
 
 const { church, chapel, hotspots } = createChurch(); scene.add(church, chapel);
+// Points d'intérêt à l'intérieur de l'église (repère de la maquette, en mètres).
+Object.assign(hotspots, {
+  orgue: new THREE.Vector3(0, 9.2, -1.3),
+  autel: new THREE.Vector3(0, 3.7, -22.1),
+  crucifix: new THREE.Vector3(5.85, 6.4, -19.7),
+  vitraux: new THREE.Vector3(0, 9.4, -30.3),
+  frise: new THREE.Vector3(-3.2, 5.4, -29.6),
+  piliers: new THREE.Vector3(-6.6, 4.4, -11.5),
+  voutes: new THREE.Vector3(0, 15.0, -9.9),
+  vitre: new THREE.Vector3(-10.4, 3.6, -1.0),
+});
 const nave = createNave(); scene.add(nave);
 
 // Mobilier urbain simple et familier.
@@ -151,6 +162,20 @@ const views = {
   'nef-bascote': { position: [-8.7, 3.4, -1.6], target: [-8.7, 3.43, -1.85], inside: 'nave' },
   'nef-orgue': { position: [0, 3.5, -15.0], target: [0, 3.62, -14.76], inside: 'nave' },
 };
+// Regarder un point depuis un endroit de la nef : la cible reste tout près de l'œil.
+function toward(eye, look) {
+  const e = new THREE.Vector3(...eye), d = new THREE.Vector3(...look).sub(e).normalize().multiplyScalar(.25);
+  return { position: eye, target: e.add(d).toArray(), inside: 'nave' };
+}
+Object.assign(views, {
+  'poi-orgue': toward([0, 3.5, -12.5], [0, 8.8, -1.3]),
+  'poi-autel': toward([0, 3.5, -18.6], [0, 3.0, -22.1]),
+  'poi-crucifix': toward([2.2, 3.5, -18.4], [5.85, 6.2, -19.7]),
+  'poi-vitraux': toward([0, 3.85, -21.0], [0, 8.6, -30.3]),
+  'poi-frise': toward([-.8, 3.85, -21.5], [-3.2, 5.3, -29.6]),
+  'poi-piliers': toward([-3.2, 3.5, -8.4], [-6.6, 4.6, -12.5]),
+  'poi-voutes': toward([0, 3.5, -7.0], [0, 15.0, -10.5]),
+});
 const OUTSIDE = { minAzimuthAngle: -Infinity, maxAzimuthAngle: Infinity, minDistance: 18, maxDistance: 125, minPolarAngle: .16, maxPolarAngle: Math.PI / 2 - .025, fov: 43, pan: true };
 // À l'intérieur, la cible reste tout près de l'œil : glisser revient à tourner la tête.
 const INSIDE = { minAzimuthAngle: Math.PI / 2 - 1.15, maxAzimuthAngle: Math.PI / 2 + 1.15, minDistance: .15, maxDistance: .45, minPolarAngle: .55, maxPolarAngle: Math.PI - .45, fov: 64, pan: false };
@@ -170,10 +195,18 @@ function setInside(mode, transit = false) {
   document.body.classList.toggle('inside', inside);
 }
 const details = {
-  parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'nef', go: 'Entrer dans l’église' },
-  clocher: { kicker: 'Le repère', title: 'Le clocher', text: 'La tour associe la brique rouge à des chaînages de pierre claire. Au-dessus de l’horloge, les baies jumelées précèdent les pinacles et la grande flèche octogonale.', view: 'clocher' },
-  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé. On la découvre à gauche en entrant dans l’église, à travers des parois vitrées.', view: 'chapelle', go: 'Regarder par la vitre' },
-  rosace: { kicker: 'La lumière', title: 'La rosace', text: 'Sur le transept, la rosace compose un motif rayonnant de huit pétales. Son cercle de pierre contraste délicatement avec le mur de brique.', view: 'rosace' },
+  orgue: { kicker: 'Au-dessus de l’entrée', title: 'La tribune d’orgue', text: 'Portée par les deux premiers piliers, la tribune accueille le buffet d’orgue néogothique en bois sombre, ses tourelles et ses tuyaux de façade, derrière une balustrade en fer forgé.', view: 'poi-orgue', go: 'Se tourner vers l’orgue', photo: 'nef-orgue' },
+  autel: { kicker: 'Le chœur', title: 'L’autel', text: 'Entre les septièmes piliers s’ouvre le chœur surélevé, là où officie le prêtre. L’autel de marbre blanc se dresse au-delà de la marche.', view: 'poi-autel', go: 'S’approcher de l’autel', photo: 'choeur' },
+  crucifix: { kicker: 'Le chœur', title: 'Le crucifix', text: 'Accroché au septième pilier, le grand crucifix de bois marque l’entrée du chœur. En face, une bannière bleue lui répond.', view: 'poi-crucifix', go: 'Regarder le crucifix', photo: 'choeur' },
+  vitraux: { kicker: 'La lumière du chœur', title: 'Les vitraux de l’abside', text: 'Trois grandes verrières éclairent le fond du chœur, au-dessus de la frise peinte, sous la voûte nervurée de l’abside.', view: 'poi-vitraux', go: 'Lever les yeux', photo: 'choeur' },
+  frise: { kicker: 'Le chœur', title: 'La frise peinte', text: 'Tout autour de l’abside, une grande frise peinte déroule une foule de personnages, au-dessus des stalles de bois.', view: 'poi-frise', go: 'Regarder la frise', photo: 'choeur' },
+  piliers: { kicker: 'La nef', title: 'Les sept piliers', text: 'De chaque côté, sept piliers de pierre en faisceau, coiffés de chapiteaux à feuillages, portent les grandes arcades. Les premiers soutiennent la tribune, les septièmes ouvrent le chœur.', view: 'poi-piliers', go: 'Longer les piliers', photo: 'bas-cote' },
+  voutes: { kicker: 'La nef', title: 'Les voûtes', text: 'Les voûtes d’ogives associent des voûtains rouges à des nervures de pierre blanche qui se croisent en clés de voûte au milieu de chaque travée.', view: 'poi-voutes', go: 'Lever les yeux', photo: 'nef-choeur' },
+  vitre: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'À gauche en entrant, la paroi vitrée laisse voir la chapelle : plafond de bois peint, retables dorés et grille en fer forgé.', view: 'chapelle', go: 'S’approcher de la vitre', photo: 'chapelle-marins' },
+  parvis: { kicker: 'Bienvenue', title: 'Le parvis', text: 'Le large escalier de pierre mène au portail principal. Ses ogives superposées, ses colonnettes et ses portes sombres structurent l’entrée de l’église.', view: 'nef', go: 'Entrer dans l’église', photo: 'facade-escalier' },
+  clocher: { kicker: 'Le repère', title: 'Le clocher', text: 'La tour associe la brique rouge à des chaînages de pierre claire. Au-dessus de l’horloge, les baies jumelées précèdent les pinacles et la grande flèche octogonale.', view: 'clocher', photo: 'clocher-carrefour' },
+  chapelle: { kicker: 'Depuis 1519', title: 'La Chapelle des Marins', text: 'Elle abrite la Vierge rejetée par les flots aux pieds du frère Thomas Illyricus en 1519. Reconstruite ici en 1722, ravagée par un incendie en 1986, elle a été restituée en 1987 dans son état de 1723 : plafond de bois peint, retables dorés et grille en fer forgé. On la découvre à gauche en entrant dans l’église, à travers des parois vitrées.', view: 'chapelle', go: 'Regarder par la vitre', photo: 'chapelle-marins-histoire' },
+  rosace: { kicker: 'La lumière', title: 'La rosace', text: 'Sur le transept, la rosace compose un motif rayonnant de huit pétales. Son cercle de pierre contraste délicatement avec le mur de brique.', view: 'rosace', photo: 'transept-rose' },
 };
 let cameraTween = null;
 function setView(name) {
@@ -198,7 +231,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fadeEl = document.getElementById('fade'), announcer = document.getElementById('announce');
 const fade = on => fadeEl.classList.toggle('on', on);
 const announce = text => { announcer.textContent = ''; setTimeout(() => { announcer.textContent = text; }, 30); };
-const PLACES = { nef: 'Vous êtes à l’entrée de la nef, sous la tribune d’orgue portée par les piliers 1.', 'nef-milieu': 'Vous êtes au milieu de la nef.', 'nef-choeur': 'Vous êtes devant le chœur, entre les piliers 7, face à l’autel.', 'nef-bascote': 'Vous êtes dans le bas-côté gauche.', 'nef-orgue': 'Vous regardez la tribune d’orgue.', chapelle: 'Vous êtes à gauche de l’entrée, devant la paroi vitrée de la Chapelle des Marins.' };
+const PLACES = { 'poi-orgue': 'Vous regardez la tribune d’orgue.', 'poi-autel': 'Vous êtes devant l’autel.', 'poi-crucifix': 'Vous regardez le crucifix.', 'poi-vitraux': 'Vous regardez les vitraux de l’abside.', 'poi-frise': 'Vous regardez la frise peinte.', 'poi-piliers': 'Vous longez les piliers.', 'poi-voutes': 'Vous regardez les voûtes.', nef: 'Vous êtes à l’entrée de la nef, sous la tribune d’orgue portée par les piliers 1.', 'nef-milieu': 'Vous êtes au milieu de la nef.', 'nef-choeur': 'Vous êtes devant le chœur, entre les piliers 7, face à l’autel.', 'nef-bascote': 'Vous êtes dans le bas-côté gauche.', 'nef-orgue': 'Vous regardez la tribune d’orgue.', chapelle: 'Vous êtes à gauche de l’entrée, devant la paroi vitrée de la Chapelle des Marins.' };
 let path = null;
 function runPath(steps) {
   path = { steps, i: -1 }; controls.enabled = false; cameraTween = null; nextStep();
@@ -281,10 +314,13 @@ function openDetail(name) {
   document.getElementById('card-text').textContent = d.text;
   document.getElementById('card-go').dataset.view = d.view;
   document.getElementById('card-go').textContent = d.go || 'Admirer de plus près';
+  const ph = document.getElementById('card-photo');
+  ph.hidden = !d.photo; if (d.photo) { ph.dataset.file = d.photo; ph.querySelector('img').src = `./photos/miniatures/${d.photo}.jpg`; ph.querySelector('img').alt = `Photo : ${d.title}`; }
   document.getElementById('detail-card').classList.add('open');
 }
 document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));
 document.querySelectorAll('.hotspot').forEach(b => b.addEventListener('click', () => openDetail(b.dataset.hotspot)));
+document.getElementById('card-photo').addEventListener('click', e => gallery.openFile(e.currentTarget.dataset.file));
 document.getElementById('detail-close').addEventListener('click', () => document.getElementById('detail-card').classList.remove('open'));
 document.getElementById('card-go').addEventListener('click', e => { document.getElementById('detail-card').classList.remove('open'); goTo(e.currentTarget.dataset.view); });
 const rotateBtn = document.getElementById('rotate-btn');
@@ -424,7 +460,8 @@ const projected = new THREE.Vector3();
 function updateHotspots() {
   document.querySelectorAll('.hotspot').forEach(el => {
     const p = hotspots[el.dataset.hotspot]; projected.copy(p).project(camera);
-    let visible = !inside && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .96 && Math.abs(projected.y) < .92;
+    const zoneIn = el.dataset.zone === 'in';
+    let visible = (zoneIn ? inNave && !path && camera.position.distanceTo(p) < 24 : !inside) && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < .96 && Math.abs(projected.y) < .92;
     if (el.dataset.hotspot === 'parvis' && camera.position.z < 0) visible = false;
     if (el.dataset.hotspot === 'rosace' && camera.position.x < 9) visible = false;
     if (el.dataset.hotspot === 'chapelle' && camera.position.x > -12) visible = false;
@@ -442,7 +479,7 @@ function draw(force = false) {
   }
   const changed = controls.update();
   if (force || needsRender || changed || animating || controls.autoRotate) {
-    renderer.render(scene, camera); updateHotspots(); needsRender = false;
+    renderer.render(scene, camera); updateHotspots(); drawPlan(); needsRender = false;
   }
 }
 renderer.setAnimationLoop(() => draw());
@@ -451,6 +488,81 @@ window.__seek = () => { cameraTween = null; controls.autoRotate = false; draw(tr
 window.__cam = (p, t) => { cameraTween = null; setInside(false, true); camera.position.set(...p); controls.target.set(...t); controls.update(); draw(true); };
 window.__play = () => draw(true);
 window.__SCENE_STATS__ = () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries });
+// --- Mini-plan : « vous êtes ici », et toucher le plan pour s'y rendre --------------------
+const planBox = document.getElementById('plan'), plan = document.getElementById('plan-canvas'), pctx = plan.getContext('2d');
+const PLAN = { x0: -21, x1: 21, z0: -32, z1: 19 };                    // chœur en haut, parvis en bas
+const SHAPES = {
+  terrace: [[-16, -28.5, 16, 9.85]],
+  steps: [[-10.4, 9.45, 10.4, 17.2]],
+  church: [[-10.6, -24.4, 10.6, 0], [-10.6, 0, -6.6, 2.4], [-15.2, -20.25, 15.2, -11.75], [-9.15, 0, 9.15, 9], [9, 3, 11.35, 9]],
+  tower: [[-3.65, 1.6, 3.65, 8.9]],
+  chapel: [[-19.4, -4.6, -11.2, 2.6]],
+  annex: [[-12.55, -8.05, -11.05, -4.65], [-14.1, -11.5, -11.1, -8.1]],
+};
+let planSize = { w: 0, h: 0 };
+function toPlan(x, z) { return [(x - PLAN.x0) / (PLAN.x1 - PLAN.x0) * planSize.w, (z - PLAN.z0) / (PLAN.z1 - PLAN.z0) * planSize.h]; }
+function fromPlan(px, py) { return [PLAN.x0 + px / planSize.w * (PLAN.x1 - PLAN.x0), PLAN.z0 + py / planSize.h * (PLAN.z1 - PLAN.z0)]; }
+function sizePlan() {
+  const r = plan.getBoundingClientRect(), dpr = Math.min(devicePixelRatio, 2);
+  planSize = { w: r.width, h: r.height }; plan.width = r.width * dpr; plan.height = r.height * dpr; pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+const inside2D = (x, z, rects) => rects.some(([a, b, c, d]) => x >= a && x <= c && z >= b && z <= d);
+const inChurch = (x, z) => inside2D(x, z, SHAPES.church) || Math.hypot(x, z + 25) < 6.9;
+function drawPlan() {
+  if (planBox.classList.contains('collapsed')) return;
+  if (!planSize.w) sizePlan();
+  const { w, h } = planSize; pctx.clearRect(0, 0, w, h);
+  const rect = (rs, fill, stroke) => rs.forEach(([a, b, c, d]) => { const [x0, y0] = toPlan(a, b), [x1, y1] = toPlan(c, d); pctx.fillStyle = fill; pctx.fillRect(x0, y0, x1 - x0, y1 - y0); if (stroke) { pctx.strokeStyle = stroke; pctx.strokeRect(x0, y0, x1 - x0, y1 - y0); } });
+  rect(SHAPES.terrace, 'rgba(160,130,120,.35)'); rect(SHAPES.steps, 'rgba(220,210,190,.9)');
+  const ch = inNave ? 'rgba(240,232,214,.98)' : 'rgba(178,96,70,.85)';
+  rect(SHAPES.church, ch);
+  const [ax, ay] = toPlan(0, -25), [rx] = toPlan(6.9, 0), r = rx - toPlan(0, 0)[0];
+  pctx.fillStyle = ch; pctx.beginPath(); pctx.arc(ax, ay, r, Math.PI, 0); pctx.fill();
+  rect(SHAPES.tower, 'rgba(214,200,170,.98)', 'rgba(120,100,80,.6)');
+  rect(SHAPES.chapel, 'rgba(150,120,90,.95)'); rect(SHAPES.annex, 'rgba(205,196,182,.95)');
+  if (inNave) {                                                          // piliers, autel, tribune
+    pctx.fillStyle = 'rgba(120,105,85,.95)';
+    for (const z of PIERS_Z) for (const x of [-6.6, 6.6]) { const [px, py] = toPlan(x, z); pctx.beginPath(); pctx.arc(px, py, 2.2, 0, Math.PI * 2); pctx.fill(); }
+    rect([[-1.25, -22.7, 1.25, -21.5]], 'rgba(255,255,255,.95)', 'rgba(120,105,85,.8)');
+    rect([[-6.35, -2.8, 6.35, 0]], 'rgba(120,80,50,.35)');
+    rect([[-10.65, -4.15, -10.5, 2.15]], 'rgba(90,160,200,.95)');
+  }
+  // Vous êtes ici : point et cône de vision.
+  let [cx, cy] = toPlan(camera.position.x, camera.position.z);
+  const off = cx < 6 || cx > w - 6 || cy < 6 || cy > h - 6;
+  cx = Math.min(w - 6, Math.max(6, cx)); cy = Math.min(h - 6, Math.max(6, cy));
+  const dx = controls.target.x - camera.position.x, dz = controls.target.z - camera.position.z, a = Math.atan2(dz, dx);
+  pctx.fillStyle = 'rgba(166,83,61,.28)'; pctx.beginPath(); pctx.moveTo(cx, cy); pctx.arc(cx, cy, inNave ? 30 : 22, a - .5, a + .5); pctx.closePath(); pctx.fill();
+  pctx.fillStyle = '#a6533d'; pctx.strokeStyle = '#fff'; pctx.lineWidth = 2;
+  pctx.beginPath(); pctx.arc(cx, cy, off ? 4 : 5, 0, Math.PI * 2); pctx.fill(); pctx.stroke(); pctx.lineWidth = 1;
+}
+plan.addEventListener('click', e => {
+  if (path) return;
+  const r = plan.getBoundingClientRect(), [x, z] = fromPlan(e.clientX - r.left, e.clientY - r.top);
+  if (inside2D(x, z, SHAPES.chapel)) { goTo('chapelle'); return; }
+  if (inChurch(x, z)) {
+    if (inNave) { walkTo(x, z); announce('Vous vous déplacez dans la nef.'); }
+    else { enterChurch('nef'); }
+    return;
+  }
+  if (inNave) { leaveChurch('parvis'); return; }
+  // Dehors : on tourne autour de l'église pour regarder l'endroit touché.
+  const t = new THREE.Vector3(x * .5, 9, z * .5), o = camera.position.clone().sub(controls.target);
+  const dir = new THREE.Vector3(x, 0, z).normalize(); const dist = Math.max(40, o.length());
+  const toPos = t.clone().add(new THREE.Vector3(dir.x * dist * .9, dist * .45, dir.z * dist * .9));
+  cameraTween = { start: performance.now(), fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget: t, dur: REDUCED ? 0 : 1100 };
+  markActive(''); needsRender = true;
+});
+document.getElementById('plan-toggle').addEventListener('click', () => {
+  const c = planBox.classList.toggle('collapsed');
+  document.getElementById('plan-toggle').setAttribute('aria-expanded', String(!c));
+  try { localStorage.setItem('plan-collapsed', c ? '1' : '0'); } catch (e) {}
+  if (!c) { sizePlan(); draw(true); }
+});
+try { if (localStorage.getItem('plan-collapsed') === '1') { planBox.classList.add('collapsed'); document.getElementById('plan-toggle').setAttribute('aria-expanded', 'false'); } } catch (e) {}
+addEventListener('resize', () => { if (!planBox.classList.contains('collapsed')) sizePlan(); });
+
+addEventListener('scene-dirty', () => draw(true));   // une texture photo vient d'arriver
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; if (inside) { camera.fov = camera.aspect < .75 ? 84 : INSIDE.fov; camera.updateProjectionMatrix(); } camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); draw(true); });
 draw(true);
 requestAnimationFrame(() => requestAnimationFrame(() => { const loading = document.getElementById('loading'); if (loading) { loading.classList.add('done'); setTimeout(() => loading.remove(), 700); } window.__SCENE_READY__ = true; }));

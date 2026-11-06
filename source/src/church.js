@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { photoTex } from './textures.js';
 
 const TAU = Math.PI * 2;
 
@@ -164,7 +165,21 @@ function altarPaintingTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-export function mergeByMaterial(group) {
+// Coordonnées de texture « au mètre » : chaque face prend la projection du mur sur son plan
+// dominant, si bien que briques et pierres gardent la même taille sur tous les volumes.
+function worldUV(geometry) {
+  const pos = geometry.attributes.position, nor = geometry.attributes.normal;
+  const uv = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const ax = Math.abs(nor.getX(i)), ay = Math.abs(nor.getY(i)), az = Math.abs(nor.getZ(i));
+    if (ay >= ax && ay >= az) { uv[i * 2] = x; uv[i * 2 + 1] = z; }
+    else if (ax >= az) { uv[i * 2] = z; uv[i * 2 + 1] = y; }
+    else { uv[i * 2] = x; uv[i * 2 + 1] = y; }
+  }
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+export function mergeByMaterial(group, worldUVMaterials = new Set()) {
   group.updateMatrixWorld(true);
   const buckets = new Map();
   group.traverse(o => {
@@ -172,6 +187,7 @@ export function mergeByMaterial(group) {
     const geometry = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
     for (const name of Object.keys(geometry.attributes)) if (!['position', 'normal', 'uv'].includes(name)) geometry.deleteAttribute(name);
     geometry.applyMatrix4(o.matrixWorld);
+    if (worldUVMaterials.has(o.material) && geometry.attributes.normal) worldUV(geometry);
     if (!buckets.has(o.material)) buckets.set(o.material, []);
     buckets.get(o.material).push(geometry);
   });
@@ -196,13 +212,15 @@ export function createChurch() {
   const canalMap = tileTexture('#7a3d26', ['#b2603f', '#c06a45', '#a85a3a', '#bb7350', '#9f5034'], 40, 22, .28);
   const ironMap = ironstoneTexture();
   const mat = {
-    brick: new THREE.MeshStandardMaterial({ map: brickMap, roughness: .91, color: 0xf1d7c6 }),
-    stone: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .83, color: 0xf1e8d4 }),
+    // Brique, pierre de taille et garluche : textures découpées dans les photos de l'église.
+    brick: new THREE.MeshStandardMaterial({ map: photoTex('brique', [.8, .8]), roughness: .9, color: 0xfff4ee }),
+    stone: new THREE.MeshStandardMaterial({ map: photoTex('pierre', [.55, .4]), roughness: .83, color: 0xfffaf0 }),
     stoneDark: new THREE.MeshStandardMaterial({ color: 0x827c6f, roughness: .96 }),
     roof: new THREE.MeshStandardMaterial({ map: roofMap, roughness: .86, color: 0xf2e2da }),
     canal: new THREE.MeshStandardMaterial({ map: canalMap, roughness: .88, color: 0xf6e4d8 }),
     spire: new THREE.MeshStandardMaterial({ map: stoneMap, roughness: .86, color: 0xe2dccd }),
-    ironstone: new THREE.MeshStandardMaterial({ map: ironMap, roughness: .97 }),
+    ironstone: new THREE.MeshStandardMaterial({ map: photoTex('garluche', [.45, .9]), roughness: .97 }),
+    rubble: new THREE.MeshStandardMaterial({ map: photoTex('moellons', [.5, .35]), roughness: .97 }),
     plaque: new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: .5 }),
     glass: new THREE.MeshStandardMaterial({ color: 0x173844, roughness: .3, metalness: .12, emissive: 0x071318, emissiveIntensity: .35 }),
     glassBlue: new THREE.MeshStandardMaterial({ color: 0x315d72, roughness: .28, metalness: .08, emissive: 0x0b1d29, emissiveIntensity: .45 }),
@@ -617,7 +635,8 @@ export function createChurch() {
   }
   cross(0, 45.25, 5.25, .9);
 
-  mergeByMaterial(church);
+  const metric = new Set([mat.brick, mat.stone, mat.ironstone, mat.rubble]);
+  mergeByMaterial(church, metric);
 
   // ---------------------------------------------------------------------------------
   // Chapelle des Marins (1722), accolée au flanc de l'église, et son annexe basse.
@@ -679,13 +698,13 @@ export function createChurch() {
   };
   const C = chapel;
   // Gros œuvre extérieur : moellons de garluche, chaînages et encadrements de pierre.
-  box(X1 - X0, FLOOR, Z1 - Z0, CX, FLOOR / 2, CZ, mat.ironstone, C);
-  box(X1 - X0, EAVE, T, CX, EAVE / 2, Z0 + T / 2, mat.ironstone, C);
-  box(X1 - X0, EAVE, T, CX, EAVE / 2, Z1 - T / 2, mat.ironstone, C);
-  box(T, EAVE, Z1 - Z0, X1 - T / 2, EAVE / 2, CZ, mat.ironstone, C);
+  box(X1 - X0, FLOOR, Z1 - Z0, CX, FLOOR / 2, CZ, mat.rubble, C);
+  box(X1 - X0, EAVE, T, CX, EAVE / 2, Z0 + T / 2, mat.rubble, C);
+  box(X1 - X0, EAVE, T, CX, EAVE / 2, Z1 - T / 2, mat.rubble, C);
+  box(T, EAVE, Z1 - Z0, X1 - T / 2, EAVE / 2, CZ, mat.rubble, C);
   const GLASS_TOP = FLOOR + 3.0;
-  box(T, FLOOR, Z1 - Z0, X0 + T / 2, FLOOR / 2, CZ, mat.ironstone, C);
-  box(T, EAVE - GLASS_TOP, Z1 - Z0, X0 + T / 2, (EAVE + GLASS_TOP) / 2, CZ, mat.ironstone, C);
+  box(T, FLOOR, Z1 - Z0, X0 + T / 2, FLOOR / 2, CZ, mat.rubble, C);
+  box(T, EAVE - GLASS_TOP, Z1 - Z0, X0 + T / 2, (EAVE + GLASS_TOP) / 2, CZ, mat.rubble, C);
   // Toit en croupe à faible pente, en tuiles canal.
   const hip = mesh(new THREE.CylinderGeometry(.16, Math.SQRT2, 1.7, 4, 1), mat.canal, C); hip.rotation.y = Math.PI / 4;
   hip.scale.set((X1 - X0) / 2 + .4, 1, (Z1 - Z0) / 2 + .4); hip.position.set(CX, EAVE + .85 - .05, CZ);
@@ -792,7 +811,7 @@ export function createChurch() {
     const light = new THREE.PointLight(0xffd8a0, 9, 9, 1.6); light.position.set(x, WALL_TOP - .2, CZ); chapelLights.add(light);
   }
   const altarLight = new THREE.PointLight(0xffe2b8, 6, 6, 1.6); altarLight.position.set(RX - 1.4, FLOOR + 3.2, CZ); chapelLights.add(altarLight);
-  mergeByMaterial(chapel);
+  mergeByMaterial(chapel, metric);
   // Miroir gauche/droite : x opposé, normales corrigées, triangles remis dans le bon sens.
   for (const m of chapel.children) {
     const pos = m.geometry.attributes.position, nor = m.geometry.attributes.normal, uv = m.geometry.attributes.uv;

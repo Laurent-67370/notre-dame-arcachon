@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeByMaterial } from './church.js';
+import { photoTex } from './textures.js';
 
 // Intérieur de l'église : nef à trois vaisseaux, sept piliers de pierre en faisceau de chaque côté,
 // voûtes d'ogives aux voûtains rouges et nervures blanches, tribune d'orgue et chœur.
@@ -93,13 +94,15 @@ export function createNave() {
   const sMap = stoneTex();
   const m = {
     plaster: new THREE.MeshStandardMaterial({ color: 0xd2d7d4, roughness: .92, side: D }),
-    vault: new THREE.MeshStandardMaterial({ map: vaultTex(), roughness: .9, side: D }),
+    vault: new THREE.MeshStandardMaterial({ map: photoTex('voute', [1.6, 1.6]), roughness: .9, side: D, color: 0xf2e6e0 }),
     stone: new THREE.MeshStandardMaterial({ map: sMap, roughness: .85, side: D }),
     rib: new THREE.MeshStandardMaterial({ color: 0xeee6d6, map: sMap, roughness: .8 }),
     floor: new THREE.MeshStandardMaterial({ map: floorTex(), roughness: .55 }),
     glass: new THREE.MeshStandardMaterial({ map: glassTex(), emissiveMap: null, emissive: 0xffffff, emissiveIntensity: .0, roughness: .4, side: D }),
     rose: new THREE.MeshStandardMaterial({ roughness: .4, side: D }),
-    mural: new THREE.MeshStandardMaterial({ map: muralTex(), roughness: .9, side: D }),
+    mural: new THREE.MeshStandardMaterial({ map: photoTex('frise', [2, 1]), roughness: .9, side: D }),
+    // Vitraux du chœur d'après la photo (texture posée sur la forme de la baie : 1,05 m × 4 m).
+    choirGlass: new THREE.MeshStandardMaterial({ roughness: .4, side: D, emissive: 0xffffff, emissiveIntensity: .9 }),
     wood: new THREE.MeshStandardMaterial({ color: 0x7b4a26, roughness: .55 }),
     darkWood: new THREE.MeshStandardMaterial({ color: 0x3b2a1e, roughness: .6, side: D }),
     pipe: new THREE.MeshStandardMaterial({ color: 0xd0d4d8, metalness: .55, roughness: .28, emissive: 0x2a2c2e }),
@@ -110,6 +113,7 @@ export function createNave() {
     flesh: new THREE.MeshStandardMaterial({ color: 0xb79a7c, roughness: .7 }),
   };
   m.glass.emissiveMap = m.glass.map; m.glass.emissiveIntensity = 1.0;
+  m.choirGlass.map = m.choirGlass.emissiveMap = photoTex('vitraux', [1 / 1.05, 1 / 4], { tile: false, offset: [.5, 0] });
   const roseMap = roseTex(); m.rose.map = roseMap; m.rose.emissiveMap = roseMap; m.rose.emissive.set(0xffffff); m.rose.emissiveIntensity = 1.0;
 
   const add = (geo, mat, parent = nave) => { const o = new THREE.Mesh(geo, mat); o.castShadow = o.receiveShadow = true; parent.add(o); return o; };
@@ -268,7 +272,7 @@ export function createNave() {
     if (k > 0 && k < 6) cyl(.1, .1, AT - 6.4, 8, Math.sin(a) * (AR - .15), (AT + 6.4) / 2, AZ + Math.cos(a) * (AR - .15), m.stone);
   }
   for (const a of [Math.PI - .52, Math.PI, Math.PI + .52]) {
-    const w = add(shapeFrom(archOutline(0, 1.05, 0, 3.0, 4.0)), m.glass);
+    const w = add(shapeFrom(archOutline(0, 1.05, 0, 3.0, 4.0)), m.choirGlass);
     w.position.set(Math.sin(a) * (AR - .06), 7.2, AZ + Math.cos(a) * (AR - .06)); w.rotation.y = a + Math.PI;
   }
   // Chœur surélevé, ouvert entre les piliers 7 : là officie le prêtre (autel, crucifix, bannière).
