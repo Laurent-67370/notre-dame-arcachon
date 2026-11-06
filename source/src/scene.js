@@ -147,7 +147,7 @@ const views = {
   // Dans la nef : points de vue d'où l'on tourne la tête.
   nef: { position: [0, 3.5, -1.0], target: [0, 3.53, -1.25], inside: 'nave' },
   'nef-milieu': { position: [0, 3.5, -10.0], target: [0, 3.55, -10.25], inside: 'nave' },
-  'nef-choeur': { position: [0, 3.7, -16.6], target: [0, 3.78, -16.85], inside: 'nave' },
+  'nef-choeur': { position: [0, 3.5, -18.4], target: [0, 3.44, -18.65], inside: 'nave' },
   'nef-bascote': { position: [-8.7, 3.4, -1.6], target: [-8.7, 3.43, -1.85], inside: 'nave' },
   'nef-orgue': { position: [0, 3.5, -15.0], target: [0, 3.62, -14.76], inside: 'nave' },
 };
@@ -198,7 +198,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fadeEl = document.getElementById('fade'), announcer = document.getElementById('announce');
 const fade = on => fadeEl.classList.toggle('on', on);
 const announce = text => { announcer.textContent = ''; setTimeout(() => { announcer.textContent = text; }, 30); };
-const PLACES = { nef: 'Vous êtes à l’entrée de la nef, sous la tribune d’orgue.', 'nef-milieu': 'Vous êtes au milieu de la nef.', 'nef-choeur': 'Vous êtes devant le chœur.', 'nef-bascote': 'Vous êtes dans le bas-côté gauche.', 'nef-orgue': 'Vous regardez la tribune d’orgue.', chapelle: 'Vous êtes à gauche de l’entrée, devant la paroi vitrée de la Chapelle des Marins.' };
+const PLACES = { nef: 'Vous êtes à l’entrée de la nef, sous la tribune d’orgue portée par les piliers 1.', 'nef-milieu': 'Vous êtes au milieu de la nef.', 'nef-choeur': 'Vous êtes devant le chœur, entre les piliers 7, face à l’autel.', 'nef-bascote': 'Vous êtes dans le bas-côté gauche.', 'nef-orgue': 'Vous regardez la tribune d’orgue.', chapelle: 'Vous êtes à gauche de l’entrée, devant la paroi vitrée de la Chapelle des Marins.' };
 let path = null;
 function runPath(steps) {
   path = { steps, i: -1 }; controls.enabled = false; cameraTween = null; nextStep();
@@ -332,8 +332,7 @@ function walkable(x, z) {
   if (z < -24.4) { const dx = x, dz = z + 24.8, r = Math.hypot(dx, dz); if (r > 4.5) { x = dx * 4.5 / r; z = -24.8 + dz * 4.5 / r; } }
   const push = (cx, cz, rad) => { const dx = x - cx, dz = z - cz, d = Math.hypot(dx, dz); if (d < rad) { const k = d > 1e-4 ? rad / d : 1; x = cx + (d > 1e-4 ? dx : rad) * k; z = cz + (d > 1e-4 ? dz : 0) * k; } };
   for (const pz of PIERS_Z) for (const px of [-6.6, 6.6]) push(px, pz, .95);
-  for (const px of [-3.3, 3.3]) push(px, -2.2, .5);
-  for (const [x0, x1, z0, z1] of [[.55, 5.85, -17.15, -3.25], [-5.85, -.55, -17.15, -3.25], [-1.5, 1.5, -20.1, -18.7]]) {
+  for (const [x0, x1, z0, z1] of [[.55, 5.85, -19.05, -3.25], [-5.85, -.55, -19.05, -3.25], [-1.5, 1.5, -22.8, -21.4]]) {
     if (x > x0 && x < x1 && z > z0 && z < z1) {
       const opts = [[x0 - .01, z, x - x0], [x1 + .01, z, x1 - x], [x, z0 - .01, z - z0], [x, z1 + .01, z1 - z]].sort((a, b) => a[2] - b[2]);
       x = opts[0][0]; z = opts[0][1];
@@ -341,7 +340,7 @@ function walkable(x, z) {
   }
   return [x, z];
 }
-const eyeAt = z => 3.5 + (z < -17.6 ? .35 : 0);
+const eyeAt = z => 3.5 + (z < -20.0 ? .35 : 0);
 const lookDir = new THREE.Vector3();
 function walkTo(x, z, dur) {
   [x, z] = walkable(x, z);
@@ -382,7 +381,7 @@ renderer.domElement.addEventListener('pointerup', e => {
     const keep = Math.max(0, d - 1.4); x = camera.position.x + dx / (d || 1) * keep; z = camera.position.z + dz / (d || 1) * keep;
   }
   [x, z] = walkable(x, z);
-  marker.position.set(x, (z < -17.6 ? 2.16 : 1.83), z); marker.visible = true;
+  marker.position.set(x, (z < -20.0 ? 2.16 : 1.83), z); marker.visible = true;
   clearTimeout(markerTimer); markerTimer = setTimeout(() => { marker.visible = false; needsRender = true; }, 1600);
   walkTo(x, z);
 });

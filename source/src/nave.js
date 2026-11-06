@@ -271,30 +271,32 @@ export function createNave() {
     const w = add(shapeFrom(archOutline(0, 1.05, 0, 3.0, 4.0)), m.glass);
     w.position.set(Math.sin(a) * (AR - .06), 7.2, AZ + Math.cos(a) * (AR - .06)); w.rotation.y = a + Math.PI;
   }
-  // Chœur surélevé, autel et crucifix.
-  box(PX * 2, .35, 6.6, 0, FLOOR + .175, -21.1, m.stone);
+  // Chœur surélevé, ouvert entre les piliers 7 : là officie le prêtre (autel, crucifix, bannière).
+  const P7 = PIERS[6];
+  box(PX * 2, .35, P7 - ZT + .2, 0, FLOOR + .175, (P7 + ZT) / 2 - .1, m.stone);
   cyl(AR, AR, .35, 32, 0, FLOOR + .175, AZ, m.stone);
-  box(PX * 2, .175, .4, 0, FLOOR + .0875, -17.6, m.stone);
-  box(2.5, .14, 1.15, 0, FLOOR + .35 + .95, -19.4, m.marble);
-  for (const dx of [-1.0, 1.0]) for (const dz of [-.4, .4]) cyl(.1, .12, .88, 10, dx, FLOOR + .35 + .44, -19.4 + dz, m.marble);
+  box(PX * 2 - 1.2, .175, .45, 0, FLOOR + .0875, P7 + .1, m.stone);
+  const ALT = P7 - 1.9;
+  box(2.5, .14, 1.15, 0, FLOOR + .35 + .95, ALT, m.marble);
+  for (const dx of [-1.0, 1.0]) for (const dz of [-.4, .4]) cyl(.1, .12, .88, 10, dx, FLOOR + .35 + .44, ALT + dz, m.marble);
   box(.14, 2.6, .12, PX - .75, 5.7, -19.75, m.darkWood); box(1.4, .13, .12, PX - .75, 6.5, -19.75, m.darkWood);
   cyl(.1, .07, 1.1, 8, PX - .75, 5.7, -19.66, m.flesh); box(.12, .1, 1.1, PX - .75, 6.45, -19.66, m.flesh).rotation.y = Math.PI / 2;
   box(.95, 1.9, .03, -PX + .7, 5.0, -19.85, m.banner);
 
   // Bancs de part et d'autre de l'allée centrale.
-  for (let z = -3.6; z > -16.9; z -= .95) for (const s of [-1, 1]) {
+  for (let z = -3.6; z > -19.2; z -= .95) for (const s of [-1, 1]) {
     const cx = s * 3.2;
     box(4.8, .07, .42, cx, FLOOR + .46, z, m.wood);
     box(4.8, .55, .06, cx, FLOOR + .8, z + .23, m.wood);
     for (const e of [-2.4, 2.4]) box(.07, .95, .55, cx + e, FLOOR + .47, z + .02, m.wood);
   }
 
-  // Tribune et buffet d'orgue au-dessus de l'entrée.
-  const TZ = -2.45, TY = CAP;
+  // Tribune et buffet d'orgue au-dessus de l'entrée, portée par les piliers 1.
+  const TZ = PIERS[0] + .45, TY = CAP;
   box(PX * 2 - .5, .3, -TZ, 0, TY, TZ / 2, m.stone);
   const bal = add(new THREE.PlaneGeometry(PX * 2 - .5, .95), m.iron); bal.position.set(0, TY + .62, TZ);
   box(PX * 2 - .5, .08, .12, 0, TY + 1.12, TZ, m.darkWood);
-  for (const x of [-3.3, 3.3]) cyl(.24, .28, TY - FLOOR, 14, x, (TY + FLOOR) / 2, TZ + .25, m.stone);
+  box(PX * 2 - .5, .45, .5, 0, TY - .2, PIERS[0], m.stone);                    // poutre de pierre d'un pilier 1 à l'autre
   const OZ = -1.0, OY = TY + .15;
   box(5.4, 4.6, 1.3, 0, OY + 2.3, OZ, m.darkWood);
   for (const [cx, w, h] of [[0, 1.7, 4.2], [-1.85, 1.35, 3.5], [1.85, 1.35, 3.5]]) {
