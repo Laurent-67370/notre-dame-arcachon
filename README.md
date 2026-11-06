@@ -22,7 +22,7 @@ Rotation automatique, deux ambiances lumineuses, galerie de photos et enregistre
 
 ```sh
 cd source
-mkdir -p public && cp -r ../photos public/
+mkdir -p public && cp -r ../photos ../textures public/
 npm ci && npx vite build
-rm -rf ../assets && cp -r dist/index.html dist/assets ..
+rm -rf ../assets && cp -r dist/index.html dist/assets ..   # photos/ et textures/ restent à la racine
 ```
