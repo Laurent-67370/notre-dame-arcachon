@@ -212,8 +212,8 @@ export function createChurch() {
     rail: new THREE.MeshStandardMaterial({ color: 0x1d1f1e, roughness: .5, metalness: .4 }),
     metal: new THREE.MeshStandardMaterial({ color: 0x292c2b, roughness: .48, metalness: .58 }),
     clock: new THREE.MeshStandardMaterial({ color: 0xf3ecd9, roughness: .55 }),
-    statue: new THREE.MeshStandardMaterial({ color: 0xe8e7df, roughness: .78 }),
-    blue: new THREE.MeshStandardMaterial({ color: 0x548aa0, roughness: .7 }),
+    statue: new THREE.MeshStandardMaterial({ color: 0xe8e7df, roughness: .78, side: THREE.DoubleSide }),
+    blue: new THREE.MeshStandardMaterial({ color: 0x3f86c4, roughness: .55, side: THREE.DoubleSide }),
   };
 
   function mesh(geometry, material, parent = target, shadow = true) {
@@ -633,16 +633,29 @@ export function createChurch() {
   const porchArch = archRing(1.95, 3.15, .2); porchArch.position.z = .02; porchDoor.add(porchArch);
   for (const dz of [-1.55, 1.55]) quoins(14.15, -9.8 + dz, 1.8, 6.3, .7);
 
-  // Statue latérale inspirée de la vue du transept.
-  const statue = new THREE.Group(); statue.position.set(18.0, 0, -9.0); chapel.add(statue);
-  for (let i = 0; i < 3; i++) cylinder(1.2 - i * .18, 1.3 - i * .18, .22, 12, 0, .11 + i * .22, 0, mat.stoneDark, statue);
-  cylinder(.55, .75, 3.4, 12, 0, 2.2, 0, mat.stone, statue);
-  cylinder(.8, .55, .32, 12, 0, 4.0, 0, mat.stone, statue);
-  const robe = mesh(new THREE.ConeGeometry(.48, 1.9, 12), mat.statue, statue); robe.position.y = 5.0;
-  const head = mesh(new THREE.SphereGeometry(.22, 16, 12), mat.statue, statue); head.position.y = 6.15;
-  const veil = mesh(new THREE.ConeGeometry(.32, .85, 12, 1, true), mat.blue, statue); veil.position.set(0, 5.95, -.06);
+  // Colonne mariale devant la porte latérale « Notre Dame » : socle rond à gradins, colonne
+  // fine à chapiteau, Vierge aux bras ouverts (robe blanche, manteau bleu) sur un globe bleu.
+  // Elle regarde vers la rue, dos à l'église.
+  const statue = new THREE.Group(); statue.position.set(17.6, 0, -9.8); statue.rotation.y = Math.PI / 2; chapel.add(statue);
+  for (let i = 0; i < 4; i++) cylinder(1.35 - i * .25, 1.4 - i * .25, .2, 24, 0, .1 + i * .2, 0, mat.stoneDark, statue);
+  cylinder(.42, .48, .5, 16, 0, 1.05, 0, mat.stone, statue);
+  cylinder(.24, .27, 3.4, 16, 0, 3.0, 0, mat.stone, statue);
+  for (const y of [1.5, 3.4]) cylinder(.29, .29, .1, 16, 0, y, 0, mat.stone, statue);
+  cylinder(.42, .28, .3, 16, 0, 4.85, 0, mat.stone, statue);
+  box(.84, .12, .84, 0, 5.06, 0, mat.stone, statue);
+  const globe = mesh(new THREE.SphereGeometry(.3, 20, 14), mat.blue, statue); globe.position.y = 5.32; globe.scale.y = .75;
+  // Robe blanche, légèrement évasée.
+  const robe = mesh(new THREE.CylinderGeometry(.15, .27, 1.25, 16), mat.statue, statue); robe.position.y = 6.05;
+  const chest = mesh(new THREE.CylinderGeometry(.13, .15, .35, 16), mat.statue, statue); chest.position.y = 6.82;
+  const head = mesh(new THREE.SphereGeometry(.11, 16, 12), mat.statue, statue); head.position.set(0, 7.15, .02);
+  // Manteau bleu : voile sur la tête, retombant dans le dos et sur les épaules.
+  const mantle = mesh(new THREE.CylinderGeometry(.14, .31, 1.55, 18, 1, true, Math.PI * .3, Math.PI * 1.4), mat.blue, statue); mantle.position.set(0, 6.3, -.03);
+  const veil = mesh(new THREE.SphereGeometry(.135, 16, 10, Math.PI * .8, Math.PI * 1.4, 0, Math.PI * .62), mat.blue, statue); veil.position.set(0, 7.17, .0);
+  // Bras ouverts vers le bas, mains tendues.
   for (const side of [-1, 1]) {
-    const arm = cylinder(.09, .12, .95, 8, side * .34, 5.55, 0, mat.statue, statue); arm.rotation.z = side * -.65;
+    const arm = cylinder(.045, .06, .5, 8, side * .22, 6.62, .07, mat.statue, statue); arm.rotation.set(-.35, 0, side * .55);
+    const sleeve = cylinder(.06, .085, .3, 8, side * .17, 6.76, .04, mat.blue, statue); sleeve.rotation.z = side * .55;
+    const hand = mesh(new THREE.SphereGeometry(.045, 8, 6), mat.statue, statue); hand.position.set(side * .37, 6.4, .14);
   }
 
   const X0 = 11.2, X1 = 19.4, Z0 = -4.6, Z1 = 2.6, T = .45, FLOOR = 1.8, EAVE = 6.6, CZ = (Z0 + Z1) / 2, CX = (X0 + X1) / 2;
