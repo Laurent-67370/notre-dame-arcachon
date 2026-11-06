@@ -1,8 +1,6 @@
 // Galerie de photos : vignettes groupées par thème et visionneuse plein écran.
 const SECTIONS = [
   ['Extérieur', [
-    ['colonne-mariale', 'Le transept, la rose, le porche « Notre Dame » et la colonne mariale'],
-    ['annexe-fleche', 'L’annexe aux fenêtres groupées, la porte « Notre Dame » et la flèche'],
     ['panorama-flanc', 'Panorama : le clocher, le pignon à la Vierge et le flanc sous les platanes'],
     ['facade-portail', 'Le pignon à la niche de la Vierge, sa rose et son portail à crochets'],
     ['portail-niche', 'Le portail latéral, ses colonnettes et sa porte bordeaux'],
@@ -29,11 +27,6 @@ const SECTIONS = [
   ['Chapelle des Marins', [
     ['chapelle-marins', 'Plafond de bois peint, retables dorés et grille en fer forgé'],
     ['chapelle-marins-histoire', 'Le panneau historique : de 1519 à la restauration de 1987'],
-  ]],
-  ['Premières références', [
-    ['facade', 'La façade, le portail ogival et la flèche du clocher'],
-    ['transept', 'Le transept, la grande rosace et la statue latérale'],
-    ['rosace', 'La rosace et les contrastes entre brique rouge et pierre claire'],
   ]],
 ];
 
