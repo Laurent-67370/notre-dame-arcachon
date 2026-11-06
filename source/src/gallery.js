@@ -1,6 +1,8 @@
 // Galerie de photos : vignettes groupées par thème et visionneuse plein écran.
 const SECTIONS = [
   ['Extérieur', [
+    ['colonne-mariale', 'Le transept, la rose, le porche « Notre Dame » et la colonne mariale'],
+    ['annexe-fleche', 'L’annexe aux fenêtres groupées, la porte « Notre Dame » et la flèche'],
     ['panorama-flanc', 'Panorama : le clocher, le pignon à la Vierge et le flanc sous les platanes'],
     ['facade-portail', 'Le pignon à la niche de la Vierge, sa rose et son portail à crochets'],
     ['portail-niche', 'Le portail latéral, ses colonnettes et sa porte bordeaux'],
